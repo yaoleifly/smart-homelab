@@ -3,7 +3,7 @@
 # Usage: curl -fsSL https://raw.githubusercontent.com/YOUR_USER/smart-homelab/main/install.sh | bash
 set -euo pipefail
 
-REPO="https://github.com/YOUR_USER/smart-homelab"
+REPO="https://github.com/yaoleifly/smart-homelab"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/smart-homelab}"
 NODE_MIN=18
 
