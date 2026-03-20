@@ -1,0 +1,18 @@
+{
+  "name": "smart-homelab",
+  "version": "1.0.0",
+  "description": "AI-powered router monitoring dashboard for OpenWrt — zero cloud dependency",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev":   "node server.js"
+  },
+  "keywords": ["openwrt", "router", "monitoring", "dashboard", "homelab", "self-hosted"],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0"
+  }
+}

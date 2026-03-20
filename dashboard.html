@@ -1,0 +1,4050 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Homelab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════
+   CSS Variables
+═══════════════════════════════════════════════════ */
+:root {
+  --sidebar-w: 56px;
+  --sidebar-expanded: 220px;
+  --header-h: 56px;
+
+  --bg:         #080d17;
+  --bg2:        #0c1220;
+  --sidebar:    #060a12;
+  --card:       #0f1929;
+  --card2:      #132034;
+  --card-hover: #172540;
+  --inset:      #0a1220;
+  --header-bg:  rgba(6,10,18,0.95);
+
+  --border:     rgba(255,255,255,0.06);
+  --border2:    rgba(255,255,255,0.11);
+  --border3:    rgba(255,255,255,0.16);
+
+  --blue:       #006fff;
+  --blue2:      #338cff;
+  --blue3:      #66aaff;
+  --blue-dim:   rgba(0,111,255,0.12);
+  --blue-glow:  rgba(0,111,255,0.28);
+  --cyan:       #00bfff;
+  --green:      #00c48c;
+  --green2:     #39d98a;
+  --green-dim:  rgba(0,196,140,0.12);
+  --red:        #f04060;
+  --red-dim:    rgba(240,64,96,0.12);
+  --amber:      #f0a020;
+  --amber-dim:  rgba(240,160,32,0.12);
+  --purple:     #9b8afb;
+
+  --text:       #d8e4f0;
+  --text2:      #6b82a0;
+  --text3:      #35485e;
+  --text4:      #1e3045;
+
+  --r:    14px;
+  --r-sm: 9px;
+  --r-xs: 6px;
+  --dur:  0.22s;
+  --ease: cubic-bezier(.4,0,.2,1);
+
+  --shadow:    0 2px 20px rgba(0,0,0,.55);
+  --shadow-sm: 0 1px 8px rgba(0,0,0,.4);
+}
+
+[data-theme="light"] {
+  --bg:         #edf1f7;
+  --bg2:        #e3eaf4;
+  --sidebar:    #f8fafc;
+  --card:       #ffffff;
+  --card2:      #f4f7fb;
+  --card-hover: #edf2f9;
+  --inset:      #eef3f9;
+  --header-bg:  rgba(255,255,255,0.96);
+
+  --border:     rgba(0,30,80,0.08);
+  --border2:    rgba(0,30,80,0.13);
+  --border3:    rgba(0,30,80,0.2);
+
+  --blue:       #005de0;
+  --blue2:      #2a78f5;
+  --blue3:      #5599ff;
+  --blue-dim:   rgba(0,93,224,0.1);
+  --blue-glow:  rgba(0,93,224,0.2);
+  --cyan:       #0099cc;
+  --green:      #009e72;
+  --green2:     #00c080;
+  --green-dim:  rgba(0,158,114,0.1);
+  --red:        #d42040;
+  --red-dim:    rgba(212,32,64,0.1);
+  --amber:      #d4880a;
+  --amber-dim:  rgba(212,136,10,0.1);
+  --purple:     #7c5fdb;
+
+  --text:       #182336;
+  --text2:      #4e6480;
+  --text3:      #9aafc8;
+  --text4:      #c8d8ec;
+
+  --shadow:    0 2px 20px rgba(0,40,120,.08);
+  --shadow-sm: 0 1px 8px rgba(0,40,120,.06);
+}
+
+/* ═══════════════════════════════════════════════════
+   Reset
+═══════════════════════════════════════════════════ */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { font-size:14px; }
+body {
+  font-family:'Inter',-apple-system,sans-serif;
+  background:var(--bg); color:var(--text);
+  min-height:100vh; overflow-x:hidden;
+  transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+*:not(.pulse):not(.spinning):not(canvas):not(.load-fill):not(.sbar-fill):not(.store-fill) {
+  transition:
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
+button { cursor:pointer; font-family:inherit; border:none; background:none; }
+
+/* ═══════════════════════════════════════════════════
+   App shell
+═══════════════════════════════════════════════════ */
+.app { display:flex; min-height:100vh; }
+
+/* ═══════════════════════════════════════════════════
+   Sidebar
+═══════════════════════════════════════════════════ */
+.sidebar {
+  width:var(--sidebar-w);
+  background:var(--sidebar);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column; align-items:center;
+  padding:0 0 16px;
+  position:fixed; top:0; left:0; bottom:0; z-index:200;
+  transition:width var(--dur) var(--ease);
+  overflow:hidden;
+}
+.sidebar.expanded { width:var(--sidebar-expanded); align-items:flex-start; }
+
+.sidebar-logo {
+  width:100%; height:var(--header-h);
+  display:flex; align-items:center; justify-content:center;
+  border-bottom:1px solid var(--border); flex-shrink:0;
+  padding:0 14px; gap:12px;
+}
+.logo-mark {
+  width:30px; height:30px; border-radius:8px; flex-shrink:0;
+  background:linear-gradient(135deg,#006fff,#00bfff);
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:800; color:#fff;
+  box-shadow:0 0 16px var(--blue-glow);
+}
+.logo-text {
+  font-size:13px; font-weight:700; color:var(--text);
+  white-space:nowrap; opacity:0;
+  transition:opacity var(--dur) var(--ease);
+}
+.sidebar.expanded .logo-text { opacity:1; }
+
+.sidebar-nav { flex:1; width:100%; padding:10px 0; display:flex; flex-direction:column; gap:2px; }
+.nav-item {
+  width:100%; display:flex; align-items:center; gap:12px;
+  padding:10px 14px; border-radius:0;
+  color:var(--text2); font-size:13px; font-weight:500;
+  white-space:nowrap; position:relative;
+  background:transparent;
+}
+.nav-item:hover { color:var(--text); background:var(--blue-dim); }
+.nav-item.active { color:var(--blue2); background:var(--blue-dim); }
+.nav-item.active::before {
+  content:''; position:absolute; left:0; top:6px; bottom:6px;
+  width:3px; background:var(--blue); border-radius:0 3px 3px 0;
+}
+.nav-icon { width:18px; height:18px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.nav-icon svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.nav-label { opacity:0; transition:opacity var(--dur) var(--ease); font-size:13px; }
+.sidebar.expanded .nav-label { opacity:1; }
+
+.sidebar-bottom { width:100%; padding:0; display:flex; flex-direction:column; gap:2px; }
+.sidebar-toggle {
+  width:100%; display:flex; align-items:center; justify-content:center;
+  padding:12px; color:var(--text2);
+}
+.sidebar-toggle:hover { color:var(--text); }
+.sidebar-toggle svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+
+/* ═══════════════════════════════════════════════════
+   Main area
+═══════════════════════════════════════════════════ */
+.main {
+  margin-left:var(--sidebar-w);
+  flex:1; display:flex; flex-direction:column;
+  min-width:0;
+  transition:margin-left var(--dur) var(--ease);
+}
+.sidebar.expanded ~ .main { margin-left:var(--sidebar-expanded); }
+
+/* ═══════════════════════════════════════════════════
+   Top header
+═══════════════════════════════════════════════════ */
+.topbar {
+  height:var(--header-h); background:var(--header-bg);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 24px; gap:12px;
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  position:sticky; top:0; z-index:100;
+}
+.breadcrumb { display:flex; align-items:center; gap:6px; flex:1; }
+.bc-item { font-size:13px; color:var(--text2); }
+.bc-sep  { color:var(--text3); font-size:11px; }
+.bc-active { color:var(--text); font-weight:600; }
+
+.topbar-right { display:flex; align-items:center; gap:6px; }
+.topbar-meta { text-align:right; padding:0 8px; }
+.meta-val { font-size:13px; font-weight:600; color:var(--text); font-family:'JetBrains Mono',monospace; }
+.meta-lbl { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; }
+
+.topbar-div { width:1px; height:22px; background:var(--border2); }
+
+.chip {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;
+}
+.chip-green { background:var(--green-dim); color:var(--green); border:1px solid rgba(0,196,140,.2); }
+.chip-red   { background:var(--red-dim);   color:var(--red);   border:1px solid rgba(240,64,96,.2); }
+.pulse { width:6px; height:6px; border-radius:50%; background:currentColor; animation:pulseAnim 2s ease infinite; flex-shrink:0; }
+@keyframes pulseAnim {
+  0%,100% { box-shadow:0 0 0 0 currentColor; }
+  60%      { box-shadow:0 0 0 4px transparent; }
+}
+
+.icon-btn {
+  width:32px; height:32px; border-radius:var(--r-xs);
+  border:1px solid var(--border2); color:var(--text2);
+  display:flex; align-items:center; justify-content:center;
+}
+.icon-btn:hover { background:var(--blue-dim); color:var(--blue2); border-color:rgba(0,111,255,.3); }
+.icon-btn svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.spinning { animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.cdown { font-size:9px; color:var(--text3); margin-top:1px; text-align:center; line-height:1; }
+
+/* ═══════════════════════════════════════════════════
+   Page content
+═══════════════════════════════════════════════════ */
+.content { padding:24px 28px; display:flex; flex-direction:column; gap:20px; }
+
+/* ═══════════════════════════════════════════════════
+   Section labels
+═══════════════════════════════════════════════════ */
+.section-label {
+  font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--text3); margin-bottom:-4px;
+}
+
+/* ═══════════════════════════════════════════════════
+   Topology + WAN row
+═══════════════════════════════════════════════════ */
+.overview-row { display:grid; grid-template-columns:340px 1fr; gap:18px; }
+
+/* Topology card */
+.topo-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); padding:20px 22px;
+  box-shadow:var(--shadow-sm); display:flex; flex-direction:column; gap:16px;
+}
+.topo-svg-wrap { flex:1; display:flex; align-items:center; justify-content:center; min-height:160px; }
+#topo-svg { width:100%; max-height:200px; overflow:visible; }
+
+/* Topology node styles */
+.topo-node-circle {
+  fill:var(--card2); stroke:var(--border2); stroke-width:1.5;
+  transition:fill var(--dur) var(--ease);
+}
+.topo-node-circle:hover { fill:var(--card-hover); }
+.topo-line { stroke:var(--text3); stroke-width:1; stroke-dasharray:4 3; opacity:.5; }
+.topo-line.active { stroke:var(--blue); stroke-dasharray:none; opacity:1; animation:flowLine 2s linear infinite; }
+@keyframes flowLine {
+  from { stroke-dashoffset:0; }
+  to { stroke-dashoffset:-20; }
+}
+.topo-line.active { stroke-dasharray:6 4; }
+
+/* WAN/network info grid */
+.wan-grid {
+  display:grid; grid-template-columns:repeat(2,1fr); gap:1px;
+  background:var(--border); border-radius:var(--r); overflow:hidden;
+  border:1px solid var(--border); box-shadow:var(--shadow-sm);
+}
+.wan-cell {
+  background:var(--card); padding:18px 20px;
+}
+.wan-cell-lbl { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.07em; margin-bottom:5px; }
+.wan-cell-val { font-size:15px; font-weight:700; color:var(--text); font-family:'JetBrains Mono',monospace; }
+.wan-cell-sub { font-size:11px; color:var(--text2); margin-top:3px; }
+
+/* ═══════════════════════════════════════════════════
+   Stat cards
+═══════════════════════════════════════════════════ */
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+
+.stat {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); padding:20px 22px 18px;
+  box-shadow:var(--shadow-sm); position:relative; overflow:hidden;
+}
+.stat:hover { background:var(--card-hover); border-color:var(--border2); box-shadow:var(--shadow); }
+
+/* Accent top border */
+.stat::after {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  border-radius:var(--r) var(--r) 0 0;
+}
+.stat.s-blue::after   { background:linear-gradient(90deg,#006fff,#00bfff); }
+.stat.s-green::after  { background:linear-gradient(90deg,#00c48c,#39d98a); }
+.stat.s-amber::after  { background:linear-gradient(90deg,#f0a020,#ff6820); }
+.stat.s-purple::after { background:linear-gradient(90deg,#9b8afb,#60a5fa); }
+
+/* Ambient glow */
+.stat::before {
+  content:''; position:absolute; top:-20px; right:-20px;
+  width:100px; height:100px; border-radius:50%; opacity:.07; pointer-events:none;
+}
+.stat.s-blue::before   { background:#006fff; }
+.stat.s-green::before  { background:#00c48c; }
+.stat.s-amber::before  { background:#f0a020; }
+.stat.s-purple::before { background:#9b8afb; }
+
+.stat-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.stat-icon {
+  width:34px; height:34px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+}
+.stat-icon svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.s-blue   .stat-icon { background:var(--blue-dim);  color:var(--blue2); }
+.s-green  .stat-icon { background:var(--green-dim); color:var(--green); }
+.s-amber  .stat-icon { background:var(--amber-dim); color:var(--amber); }
+.s-purple .stat-icon { background:rgba(155,138,251,.12); color:var(--purple); }
+
+.stat-trend { font-size:10px; display:flex; align-items:center; gap:3px; }
+.stat-val  { font-size:28px; font-weight:700; letter-spacing:-1px; line-height:1; }
+.s-blue   .stat-val { color:var(--blue3); }
+.s-green  .stat-val { color:var(--green2); }
+.s-amber  .stat-val { color:var(--amber); }
+.s-purple .stat-val { color:var(--purple); }
+.stat-lbl  { font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); margin-top:5px; }
+.stat-sub  { font-size:11px; color:var(--text2); margin-top:3px; }
+
+/* Mini sparkline canvas */
+.sparkline-wrap { margin-top:10px; height:28px; }
+.sparkline-wrap canvas { width:100%!important; height:28px!important; }
+
+/* ═══════════════════════════════════════════════════
+   Cards
+═══════════════════════════════════════════════════ */
+.card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); padding:22px 24px;
+  box-shadow:var(--shadow-sm);
+}
+.card-head {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:20px;
+}
+.card-title {
+  display:flex; align-items:center; gap:8px;
+  font-size:12px; font-weight:700; color:var(--text);
+  text-transform:uppercase; letter-spacing:.06em;
+}
+.tdot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.card-actions { display:flex; align-items:center; gap:8px; }
+
+/* badge */
+.badge {
+  font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px;
+  display:inline-flex; align-items:center; gap:4px; letter-spacing:.02em;
+}
+.b-blue   { background:var(--blue-dim);  color:var(--blue2);  border:1px solid rgba(0,111,255,.18); }
+.b-green  { background:var(--green-dim); color:var(--green);  border:1px solid rgba(0,196,140,.18); }
+.b-red    { background:var(--red-dim);   color:var(--red);    border:1px solid rgba(240,64,96,.18); }
+.b-amber  { background:var(--amber-dim); color:var(--amber);  border:1px solid rgba(240,160,32,.18); }
+.b-gray   { background:var(--border);    color:var(--text2);  border:1px solid var(--border2); }
+
+/* Tabs */
+.tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:16px; }
+.tab {
+  padding:8px 16px; font-size:11px; font-weight:600; color:var(--text2);
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+  text-transform:uppercase; letter-spacing:.05em;
+}
+.tab:hover { color:var(--text); }
+.tab.active { color:var(--blue2); border-bottom-color:var(--blue); }
+
+/* Search input */
+.search-row { position:relative; margin-bottom:14px; }
+.search-row svg {
+  position:absolute; left:10px; top:50%; transform:translateY(-50%);
+  width:13px; height:13px; fill:none; stroke:var(--text3);
+  stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; pointer-events:none;
+}
+.search-input {
+  width:100%; background:var(--inset); border:1px solid var(--border2);
+  border-radius:var(--r-xs); padding:7px 10px 7px 30px;
+  font-size:12px; color:var(--text); font-family:'Inter',sans-serif; outline:none;
+}
+.search-input::placeholder { color:var(--text3); }
+.search-input:focus { border-color:var(--blue); box-shadow:0 0 0 2px var(--blue-dim); }
+
+/* ═══════════════════════════════════════════════════
+   Chart + System mid row
+═══════════════════════════════════════════════════ */
+.mid-row { display:grid; grid-template-columns:1fr 300px; gap:18px; }
+
+/* System panel sections */
+.sys-panel { background:var(--card); border:1px solid var(--border); border-radius:var(--r); box-shadow:var(--shadow-sm); overflow:hidden; }
+.sys-sect { padding:18px 20px; }
+.sys-sect + .sys-sect { border-top:1px solid var(--border); }
+.sys-sect-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.sys-sect-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text2); display:flex; align-items:center; gap:7px; }
+
+/* Memory ring */
+.ring-layout { display:flex; align-items:center; gap:16px; }
+.ring-wrap { position:relative; width:88px; height:88px; flex-shrink:0; }
+.ring-wrap canvas { position:absolute; inset:0; }
+.ring-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.ring-pct { font-size:17px; font-weight:700; color:var(--text); letter-spacing:-0.5px; }
+.ring-unit { font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:.05em; }
+.mem-rows { display:flex; flex-direction:column; gap:6px; flex:1; }
+.mem-row { display:flex; justify-content:space-between; }
+.mem-lbl { font-size:11px; color:var(--text2); }
+.mem-val { font-size:11px; font-weight:500; font-family:'JetBrains Mono',monospace; color:var(--text); }
+
+/* Load bars */
+.load-items { display:flex; flex-direction:column; gap:9px; }
+.load-item { display:flex; align-items:center; gap:9px; }
+.load-lbl { font-size:10px; color:var(--text3); width:30px; flex-shrink:0; }
+.load-track { flex:1; height:4px; background:var(--inset); border-radius:3px; overflow:hidden; }
+.load-fill { height:100%; border-radius:3px; }
+.load-num { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text2); width:26px; text-align:right; flex-shrink:0; }
+
+/* Storage */
+.store-items { display:flex; flex-direction:column; gap:11px; }
+.store-item {}
+.store-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px; }
+.store-mount { font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text2); }
+.store-info  { font-size:10px; color:var(--text3); }
+.store-track { height:3px; background:var(--inset); border-radius:2px; overflow:hidden; }
+.store-fill { height:100%; border-radius:2px; transition:width .5s var(--ease); }
+
+/* ═══════════════════════════════════════════════════
+   Device table
+═══════════════════════════════════════════════════ */
+.device-table { width:100%; border-collapse:collapse; }
+.device-table th {
+  position:sticky; top:0; background:var(--card);
+  font-size:9px; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--text3); padding:0 12px 12px; text-align:left;
+  border-bottom:1px solid var(--border); font-weight:700;
+}
+.device-table td { padding:10px 12px; }
+.device-table tbody tr { border-bottom:1px solid var(--border); }
+.device-table tbody tr:last-child td { border-bottom:none; }
+.device-table tbody tr:hover td { background:var(--card2); }
+.d-scroll { max-height:280px; overflow-y:auto; }
+
+.d-status { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); display:inline-block; }
+.d-icon { width:26px; height:26px; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+.d-ip   { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text); }
+.d-host { font-size:12px; color:var(--text); font-weight:500; }
+.d-type { font-size:10px; color:var(--text2); margin-top:1px; }
+.d-mac  { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text3); }
+
+/* ═══════════════════════════════════════════════════
+   Interfaces grid
+═══════════════════════════════════════════════════ */
+.iface-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(145px,1fr)); gap:10px; }
+.iface-card {
+  background:var(--card2); border:1px solid var(--border);
+  border-radius:var(--r-sm); padding:15px 17px;
+}
+.iface-card:hover { border-color:var(--border2); background:var(--card-hover); }
+.iface-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:9px; }
+.iface-name { font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; color:var(--text); }
+.iface-status { width:6px; height:6px; border-radius:50%; }
+.iface-row { display:flex; justify-content:space-between; font-size:10px; margin-top:4px; }
+.iface-lbl { color:var(--text3); }
+.iface-val { font-family:'JetBrains Mono',monospace; font-weight:500; }
+.c-dn { color:var(--green); }
+.c-up { color:var(--blue2); }
+.c-err { color:var(--red); }
+
+/* ═══════════════════════════════════════════════════
+   Log
+═══════════════════════════════════════════════════ */
+.log-list { display:flex; flex-direction:column; gap:4px; max-height:180px; overflow-y:auto; }
+.log-row {
+  display:grid; grid-template-columns:120px 100px 1fr auto;
+  gap:8px; align-items:center;
+  padding:7px 10px; border-radius:var(--r-xs);
+  background:var(--card2); font-size:12px; line-height:1.5;
+  border-left:2px solid transparent;
+}
+.log-row.err  { border-left-color:var(--red); }
+.log-row.warn { border-left-color:var(--amber); }
+.log-time   { font-family:'JetBrains Mono',monospace; color:var(--text3); font-size:10px; }
+.log-daemon { color:var(--blue2); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.log-msg    { color:var(--text2); word-break:break-all; }
+.log-ok     { color:var(--green); font-size:12px; display:flex; align-items:center; gap:7px; padding:10px; }
+
+/* ═══════════════════════════════════════════════════
+   Bottom row
+═══════════════════════════════════════════════════ */
+.btm-row { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+
+/* ═══════════════════════════════════════════════════
+   Footer
+═══════════════════════════════════════════════════ */
+.footer { text-align:center; color:var(--text3); font-size:10px; padding:4px 0 20px; letter-spacing:.03em; }
+
+/* ═══════════════════════════════════════════════════
+   Responsive
+═══════════════════════════════════════════════════ */
+@media(max-width:1180px){
+  .mid-row { grid-template-columns:1fr; }
+  .sys-panel { display:grid; grid-template-columns:repeat(3,1fr); }
+  .sys-sect + .sys-sect { border-top:none; border-left:1px solid var(--border); }
+  .overview-row { grid-template-columns:1fr; }
+}
+@media(max-width:900px){
+  .stats-row { grid-template-columns:repeat(2,1fr); }
+  .btm-row { grid-template-columns:1fr; }
+}
+@media(max-width:640px){
+  .sidebar { display:none; }
+  .main { margin-left:0!important; }
+  .content { padding:14px; }
+  .stats-row { grid-template-columns:1fr 1fr; gap:10px; }
+}
+
+/* Ring countdown */
+.ring-btn-wrap { position:relative; width:32px; height:32px; cursor:pointer; flex-shrink:0; }
+.ring-btn-svg { position:absolute; inset:0; pointer-events:none; transform:rotate(-90deg); width:32px; height:32px; }
+
+/* Error banner */
+.err-banner {
+  background:var(--red-dim); border-bottom:1px solid rgba(240,64,96,.25);
+  color:var(--red); font-size:12px; font-weight:500;
+  padding:9px 24px; display:flex; align-items:center; gap:10px;
+  animation:slideDown .2s var(--ease);
+}
+.err-banner.hidden { display:none; }
+@keyframes slideDown { from { margin-top:-40px; opacity:0; } to { margin-top:0; opacity:1; } }
+
+/* Log filter */
+.log-filter { display:flex; gap:5px; margin-bottom:12px; }
+.lf-btn {
+  padding:3px 11px; border-radius:20px; font-size:10px; font-weight:700;
+  letter-spacing:.05em; text-transform:uppercase;
+  border:1px solid var(--border2); color:var(--text2); background:transparent;
+}
+.lf-btn:hover { color:var(--text); border-color:var(--border3); }
+.lf-btn.active      { background:var(--blue-dim);  color:var(--blue2); border-color:rgba(0,111,255,.3); }
+.lf-btn.active-err  { background:var(--red-dim);   color:var(--red);   border-color:rgba(240,64,96,.3); }
+.lf-btn.active-warn { background:var(--amber-dim); color:var(--amber); border-color:rgba(240,160,32,.3); }
+
+/* Sortable column */
+.sort-th { cursor:pointer; user-select:none; }
+.sort-th:hover { color:var(--text2) !important; }
+.sort-arr { font-size:8px; margin-left:3px; color:var(--text3); }
+.sort-arr.active { color:var(--blue2); }
+
+/* Card entrance */
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.content > * { animation:fadeUp .35s var(--ease) both; }
+.content > *:nth-child(1) { animation-delay:.02s; }
+.content > *:nth-child(2) { animation-delay:.06s; }
+.content > *:nth-child(3) { animation-delay:.10s; }
+.content > *:nth-child(4) { animation-delay:.14s; }
+.content > *:nth-child(5) { animation-delay:.18s; }
+.content > *:nth-child(6) { animation-delay:.22s; }
+.content > *:nth-child(7) { animation-delay:.26s; }
+
+/* Iface rate row */
+.iface-rate { margin-top:6px; padding-top:6px; border-top:1px solid var(--border); }
+
+/* History table */
+.hist-tbl { width:100%; border-collapse:collapse; margin-top:2px; }
+.hist-tbl th {
+  font-size:9px; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--text3); padding:0 10px 6px; text-align:right; font-weight:700; border-bottom:1px solid var(--border);
+}
+.hist-tbl th:first-child { text-align:left; }
+.hist-tbl td { padding:5px 10px; font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text2); text-align:right; border-bottom:1px solid var(--border); }
+.hist-tbl td:first-child { color:var(--text3); text-align:left; font-family:'Inter',sans-serif; }
+.hist-tbl tbody tr:last-child td { border-bottom:none; }
+.hist-tbl tbody tr:hover td { background:var(--card2); }
+
+/* Network iface table */
+.net-iface-tbl { width:100%; border-collapse:collapse; }
+.net-iface-tbl th {
+  font-size:9px; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--text3); padding:0 12px 8px; text-align:right; font-weight:700;
+  border-bottom:1px solid var(--border);
+}
+.net-iface-tbl th:first-child { text-align:left; }
+.net-iface-tbl td {
+  padding:8px 12px; font-size:11px; font-family:'JetBrains Mono',monospace;
+  color:var(--text2); text-align:right; border-bottom:1px solid var(--border);
+}
+.net-iface-tbl td:first-child { color:var(--text); text-align:left; font-weight:600; }
+.net-iface-tbl tbody tr:last-child td { border-bottom:none; }
+.net-iface-tbl tbody tr:hover td { background:var(--card2); }
+/* ── Event timeline ─────────────────────────────────── */
+.evt-card {
+  display:grid; grid-template-columns:auto 1fr auto;
+  gap:12px; align-items:start;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r-sm); padding:12px 16px;
+  border-left:3px solid transparent;
+}
+.evt-card.error { border-left-color:var(--red); }
+.evt-card.warn  { border-left-color:var(--amber); }
+.evt-card.info  { border-left-color:var(--blue); }
+.evt-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px; }
+.evt-dot.error{background:var(--red);}
+.evt-dot.warn{background:var(--amber);}
+.evt-dot.info{background:var(--blue);}
+.evt-title { font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px; }
+.evt-detail { font-size:11px;color:var(--text2);line-height:1.5;white-space:pre-wrap; }
+.evt-time { font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text3);white-space:nowrap; }
+.evt-date-sep { text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--text3);padding:6px 0; }
+
+/* ── Score gauge / components ───────────────────────── */
+.score-comp { display:flex;align-items:center;gap:7px;font-size:10px; }
+.score-comp-lbl { color:var(--text3);width:55px;flex-shrink:0; }
+.score-comp-bar { flex:1;height:3px;background:var(--inset);border-radius:2px;overflow:hidden; }
+.score-comp-fill { height:100%;border-radius:2px; }
+.score-comp-val { color:var(--text2);width:26px;text-align:right;font-family:'JetBrains Mono',monospace; }
+
+/* ── New page layouts ────────────────────────────────── */
+.page { display:none; flex-direction:column; gap:20px; padding:24px 28px; }
+.page.active { display:flex; }
+.page-header {
+  display:flex; align-items:flex-start; justify-content:space-between;
+  padding-bottom:4px;
+}
+.page-title { font-size:22px; font-weight:700; color:var(--text); margin-top:4px; }
+.breadcrumb-text { font-size:12px; color:var(--text3); }
+.page-body { display:flex; flex-direction:column; gap:20px; }
+.grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+.grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+.card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.card-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text3); margin-bottom:8px; }
+.card .stat-val { font-size:26px; font-weight:700; color:var(--text); letter-spacing:-0.5px; }
+.card .stat-sub { font-size:11px; color:var(--text2); margin-top:2px; }
+.card-title { font-size:12px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:.06em; }
+.data-table { width:100%; border-collapse:collapse; }
+.data-table th { font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:var(--text3); padding:0 12px 10px; text-align:left; font-weight:700; border-bottom:1px solid var(--border); }
+.data-table td { padding:9px 12px; font-size:12px; color:var(--text2); border-bottom:1px solid var(--border); }
+.data-table tbody tr:last-child td { border-bottom:none; }
+.data-table tbody tr:hover td { background:var(--card2); }
+.empty-state { text-align:center; color:var(--text3); font-style:italic; padding:20px; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:var(--r-xs); font-size:12px; font-weight:600; background:var(--card2); color:var(--text); border:1px solid var(--border2); }
+.btn:hover { background:var(--card-hover); border-color:var(--border3); }
+.btn-primary { background:var(--blue-dim); color:var(--blue2); border-color:rgba(0,111,255,.3); }
+.btn-primary:hover { background:rgba(0,111,255,.2); }
+.input { outline:none; }
+.input:focus { border-color:var(--blue); box-shadow:0 0 0 2px var(--blue-dim); }
+.badge-info  { background:var(--blue-dim);  color:var(--blue2);  border:1px solid rgba(0,111,255,.18); }
+.badge-error { background:var(--red-dim);   color:var(--red);    border:1px solid rgba(240,64,96,.18); }
+.badge-warn  { background:var(--amber-dim); color:var(--amber);  border:1px solid rgba(240,160,32,.18); }
+@media(max-width:900px){ .grid-3{ grid-template-columns:1fr 1fr; } }
+@media(max-width:640px){ .grid-3,.grid-2{ grid-template-columns:1fr; } }
+
+/* ── Anomaly list ────────────────────────────────────── */
+.anomaly-row {
+  display:grid;grid-template-columns:1fr 90px 90px 90px 60px;
+  gap:8px;align-items:center;
+  padding:9px 12px;border-bottom:1px solid var(--border);
+  font-size:11px;
+}
+.anomaly-row:last-child { border-bottom:none; }
+.anomaly-metric { font-weight:600;color:var(--text); }
+.anomaly-sigma { font-family:'JetBrains Mono',monospace;font-size:10px; }
+
+/* ── AI summary body ────────────────────────────────── */
+#ai-summary-body strong, #ai-log-result strong { color:var(--text);font-weight:600; }
+#ai-summary-body em, #ai-log-result em { color:var(--text2); }
+
+/* ── Activity heatmap (24h bar) ─────────────────────── */
+.act-bar { display:flex;gap:1px;align-items:flex-end;height:18px; }
+.act-bar span { width:4px;border-radius:1px;background:var(--blue);opacity:.2;flex-shrink:0; }
+.act-bar span.active { opacity:1; }
+
+/* ── Health chip ────────────────────────────────────── */
+.chip-score-good  { background:var(--green-dim);  color:var(--green);  border:1px solid rgba(0,196,140,.2); }
+.chip-score-ok    { background:var(--blue-dim);   color:var(--blue2);  border:1px solid rgba(0,111,255,.2); }
+.chip-score-warn  { background:var(--amber-dim);  color:var(--amber);  border:1px solid rgba(240,160,32,.2); }
+.chip-score-bad   { background:var(--red-dim);    color:var(--red);    border:1px solid rgba(240,64,96,.2); }
+
+/* ── iOS spring & easing ─────────────────────────────── */
+:root {
+  --spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out:  cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-in:   cubic-bezier(0.55, 0, 1, 0.45);
+  --snap:      cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Page transitions */
+.page-enter {
+  animation: pageSlideIn 0.32s var(--ease-out) both;
+}
+@keyframes pageSlideIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* Card hover lift */
+.card, .stat, .iface-card, .topo-card, .wan-grid {
+  transition: transform 0.22s var(--spring), box-shadow 0.22s var(--ease-out),
+              background-color var(--dur) var(--ease), border-color var(--dur) var(--ease) !important;
+}
+.card:hover, .stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+}
+
+/* Button press feedback */
+button:active:not(.sidebar-toggle):not(.nav-item) {
+  transform: scale(0.96);
+  transition: transform 0.1s var(--ease-in) !important;
+}
+
+/* Icon-btn spring pop */
+.icon-btn {
+  transition: transform 0.22s var(--spring), background-color var(--dur) var(--ease),
+              color var(--dur) var(--ease), border-color var(--dur) var(--ease) !important;
+}
+.icon-btn:hover { transform: scale(1.08); }
+
+/* Chip entrance */
+.chip { transition: transform 0.22s var(--spring), background-color var(--dur) var(--ease),
+                    color var(--dur) var(--ease), border-color var(--dur) var(--ease) !important; }
+.chip:hover { transform: scale(1.04); }
+
+/* Staggered stat cards */
+.stats-row .stat:nth-child(1) { animation-delay: .04s; }
+.stats-row .stat:nth-child(2) { animation-delay: .08s; }
+.stats-row .stat:nth-child(3) { animation-delay: .12s; }
+.stats-row .stat:nth-child(4) { animation-delay: .16s; }
+
+/* Skeleton loader */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.skeleton {
+  border-radius: 6px; height: 14px;
+  background: linear-gradient(90deg, var(--card2) 25%, var(--card-hover) 50%, var(--card2) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+/* Tab active spring */
+.tab { transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease) !important; }
+.tab.active { animation: tabPop 0.28s var(--spring); }
+@keyframes tabPop { from { transform: scaleX(0.9); } to { transform: scaleX(1); } }
+
+/* Badge pop on update */
+@keyframes badgePop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.badge-pop { animation: badgePop 0.35s var(--spring); }
+
+/* Number counter animation handled by JS */
+
+/* lf-btn hover */
+.lf-btn {
+  transition: transform 0.2s var(--spring), background-color var(--dur) var(--ease),
+              color var(--dur) var(--ease), border-color var(--dur) var(--ease) !important;
+}
+.lf-btn:hover { transform: scale(1.04); }
+.lf-btn:active { transform: scale(0.96) !important; }
+
+/* Nav item slide */
+.nav-item {
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease) !important;
+}
+
+/* ── Device Detail Drawer ────────────────────────────── */
+.drawer-overlay {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s var(--ease-out);
+}
+.drawer-overlay.open { opacity: 1; pointer-events: auto; }
+
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 500;
+  width: min(480px, 100vw);
+  background: var(--bg2);
+  border-left: 1px solid var(--border2);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.38s var(--spring);
+  box-shadow: -8px 0 40px rgba(0,0,0,0.5);
+}
+.drawer.open { transform: translateX(0); }
+
+.drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.drawer-title {
+  font-size: 16px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 10px;
+}
+.drawer-close {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--card2); border: 1px solid var(--border2);
+  color: var(--text2); display: flex; align-items: center; justify-content: center;
+  font-size: 16px; line-height: 1; cursor: pointer;
+  transition: transform 0.22s var(--spring), background var(--dur) var(--ease) !important;
+}
+.drawer-close:hover { background: var(--red-dim); color: var(--red); transform: scale(1.1) rotate(90deg); }
+
+.drawer-body {
+  flex: 1; overflow-y: auto; padding: 20px 24px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+.drawer-section {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden;
+}
+.drawer-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--text3);
+  padding: 12px 16px 8px;
+}
+.drawer-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 16px; border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+.drawer-row:first-of-type { border-top: none; }
+.drawer-row-lbl { color: var(--text2); }
+.drawer-row-val { font-weight: 500; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px; text-align: right; }
+
+.drawer-activity {
+  padding: 14px 16px;
+}
+.activity-grid {
+  display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px;
+  margin-top: 8px;
+}
+.activity-cell {
+  height: 28px; border-radius: 3px;
+  background: var(--blue-dim);
+  transition: background 0.2s var(--ease-out), transform 0.18s var(--spring);
+}
+.activity-cell:hover { transform: scaleY(1.15); }
+.activity-cell.active-low  { background: rgba(0,111,255,0.35); }
+.activity-cell.active-mid  { background: rgba(0,111,255,0.65); }
+.activity-cell.active-high { background: var(--blue); box-shadow: 0 0 6px var(--blue-glow); }
+.activity-hours {
+  display: flex; justify-content: space-between;
+  margin-top: 5px; font-size: 9px; color: var(--text3);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.drawer-type-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: var(--blue-dim); display: flex; align-items: center;
+  justify-content: center; font-size: 22px;
+}
+
+/* ── Toast Notifications ──────────────────────────────── */
+#toast-container {
+  position: fixed; bottom: 24px; right: 24px;
+  display: flex; flex-direction: column-reverse; gap: 8px;
+  z-index: 9999; pointer-events: none;
+}
+.toast {
+  min-width: 260px; max-width: 380px;
+  background: var(--card2); border: 1px solid var(--border2);
+  border-radius: var(--r-sm); padding: 12px 16px;
+  display: flex; align-items: flex-start; gap: 10px;
+  box-shadow: var(--shadow); pointer-events: auto;
+  animation: toastIn var(--spring) 0.35s both;
+}
+.toast.out { animation: toastOut 0.25s ease-in forwards; }
+.toast-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.toast-body { flex: 1; }
+.toast-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.toast-sub   { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.toast-close { background: none; border: none; color: var(--text3); cursor: pointer; padding: 0; font-size: 14px; flex-shrink: 0; }
+@keyframes toastIn  { from { opacity:0; transform:translateX(40px) scale(0.95); } to { opacity:1; transform:none; } }
+@keyframes toastOut { from { opacity:1; transform:none; } to { opacity:0; transform:translateX(40px); } }
+
+/* ── Traffic Heatmap ──────────────────────────────────── */
+.heatmap-wrap { overflow-x: auto; }
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: 40px repeat(24, 1fr);
+  gap: 2px; font-size: 10px;
+}
+.hm-label { color: var(--text3); display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: 10px; white-space: nowrap; }
+.hm-cell {
+  height: 22px; border-radius: 3px;
+  background: var(--blue-dim);
+  transition: opacity 0.2s;
+  cursor: default;
+}
+.hm-cell:hover { outline: 1px solid var(--blue2); }
+.hm-hour-row {
+  display: grid; grid-template-columns: 40px repeat(24, 1fr); gap: 2px;
+  margin-top: 2px;
+}
+.hm-hour-lbl { color: var(--text3); font-size: 9px; text-align: center; }
+
+/* ── AI Chat ──────────────────────────────────────────── */
+.chat-bubble {
+  max-width: 88%; padding: 10px 14px; border-radius: 14px;
+  font-size: 13px; line-height: 1.55;
+}
+.chat-bubble.user {
+  align-self: flex-end; background: var(--blue); color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.chat-bubble.ai {
+  align-self: flex-start; background: var(--card2); color: var(--text);
+  border: 1px solid var(--border); border-bottom-left-radius: 4px;
+}
+.chat-bubble.loading { opacity: 0.6; }
+
+/* ── Mobile layout ────────────────────────────────────── */
+@media (max-width: 640px) {
+  .sidebar { display: none !important; }
+  .main    { margin-left: 0 !important; padding-bottom: 64px; }
+  .header  { left: 0 !important; }
+  #mobile-nav {
+    display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+    height: 56px; background: var(--sidebar);
+    border-top: 1px solid var(--border);
+    z-index: 200; justify-content: space-around; align-items: center;
+  }
+  .mnav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 2px; padding: 6px 4px; border: none; background: none;
+    color: var(--text2); cursor: pointer; font-size: 9px;
+    transition: color 0.15s;
+  }
+  .mnav-item svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+  .mnav-item.active { color: var(--blue2); }
+  .mnav-item span  { font-size: 9px; }
+  .stats-row { grid-template-columns: repeat(2,1fr) !important; }
+  .grid-3    { grid-template-columns: repeat(2,1fr) !important; }
+  .overview-row { flex-direction: column !important; }
+}
+@media (min-width: 641px) { #mobile-nav { display: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══════════════════════════════════════════
+     Sidebar
+══════════════════════════════════════════ -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">S</div>
+    <span class="logo-text">Smart Homelab</span>
+  </div>
+
+  <div class="sidebar-nav">
+    <button class="nav-item active" data-page="overview" onclick="setNav(this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+      <span class="nav-label">概览</span>
+    </button>
+    <button class="nav-item" data-page="traffic" onclick="setNav(this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+      <span class="nav-label">流量统计</span>
+    </button>
+    <button class="nav-item" data-page="devices" onclick="setNav(this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+      <span class="nav-label">设备</span>
+    </button>
+    <button class="nav-item" data-page="network" onclick="setNav(this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M7.76 7.76a6 6 0 0 0 0 8.49"/><path d="M20.07 4.93a10 10 0 0 1 0 14.14"/><path d="M3.93 4.93a10 10 0 0 0 0 14.14"/></svg></span>
+      <span class="nav-label">网络</span>
+    </button>
+    <button class="nav-item" data-page="alerts" onclick="setNav(this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+      <span class="nav-label">告警</span>
+    </button>
+    <button class="nav-item" data-page="events" onclick="setNav(this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+      <span class="nav-label">时间轴</span>
+    </button>
+    <button class="nav-item" data-page="ai" onclick="setNav(this)">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 4a1.5 1.5 0 1 1-1.5 1.5A1.5 1.5 0 0 1 12 6zm3 11H9v-1l1-1v-4l-1-1V9h4v6l1 1z"/></svg></span>
+      <span class="nav-label">AI 分析</span>
+    </button>
+    <button class="nav-item" data-page="wifi" onclick="setNav(this)" title="无线网络">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="currentColor"/></svg></span>
+      <span class="nav-label">无线网络</span>
+    </button>
+    <button class="nav-item" data-page="security" onclick="setNav(this)" title="安全审计">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+      <span class="nav-label">安全审计</span>
+    </button>
+    <button class="nav-item" data-page="plugins" onclick="setNav(this)" title="插件管理">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
+      <span class="nav-label">插件管理</span>
+    </button>
+    <button class="nav-item" data-page="backup" onclick="setNav(this)" title="配置备份">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span>
+      <span class="nav-label">配置备份</span>
+    </button>
+    <button class="nav-item" data-page="settings" onclick="setNav(this)" title="系统设置">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+      <span class="nav-label">系统设置</span>
+    </button>
+  </div>
+
+  <div class="sidebar-bottom">
+    <button class="sidebar-toggle" id="toggle-btn" onclick="toggleSidebar()">
+      <svg id="toggle-icon" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     Main
+══════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="breadcrumb">
+      <span class="bc-item">Smart Homelab</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-item bc-active">网络概览</span>
+    </div>
+    <div class="topbar-right">
+      <div id="health-chip" class="chip" style="gap:6px;font-size:12px;font-weight:700;display:none">
+        <svg style="width:11px;height:11px;flex-shrink:0" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span id="health-score-val">—</span>
+      </div>
+      <div class="topbar-div" id="health-div" style="display:none"></div>
+      <div id="status-chip" class="chip chip-green"><div class="pulse"></div><span>在线</span></div>
+      <div class="topbar-div"></div>
+      <div class="topbar-meta">
+        <div id="t-clock" class="meta-val" style="font-variant-numeric:tabular-nums">—</div>
+        <div class="meta-lbl">当前时间</div>
+      </div>
+      <div class="topbar-div"></div>
+      <div class="topbar-meta">
+        <div id="t-wan" class="meta-val">—</div>
+        <div class="meta-lbl">外网 IP</div>
+      </div>
+      <div class="topbar-div"></div>
+      <div class="topbar-meta">
+        <div id="t-updated" class="meta-val">—</div>
+        <div class="meta-lbl">更新时间</div>
+      </div>
+      <div class="topbar-div"></div>
+      <!-- Theme -->
+      <button class="icon-btn" id="theme-btn" title="切换主题">
+        <svg id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <!-- Refresh with ring progress -->
+      <div class="ring-btn-wrap" title="立即刷新（重新采集）">
+        <svg class="ring-btn-svg" viewBox="0 0 32 32">
+          <circle cx="16" cy="16" r="13" fill="none" stroke="var(--border2)" stroke-width="2"/>
+          <circle id="ring-prog" cx="16" cy="16" r="13" fill="none" stroke="var(--blue)" stroke-width="2"
+            stroke-dasharray="81.68" stroke-dashoffset="0" stroke-linecap="round"/>
+        </svg>
+        <button class="icon-btn" id="refresh-btn" style="position:absolute;inset:0;border:none;background:none;border-radius:var(--r-xs)">
+          <svg id="refresh-icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div id="err-banner" class="err-banner hidden">
+    <svg style="width:14px;height:14px;flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span id="err-msg">连接失败 — 数据可能已过时</span>
+    <button onclick="this.parentElement.classList.add('hidden')" style="margin-left:auto;color:currentColor;opacity:.6;font-size:14px">✕</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content" id="page-overview">
+
+    <!-- Overview: Topology + WAN -->
+    <div class="overview-row">
+      <!-- Topology -->
+      <div class="topo-card">
+        <div class="card-head" style="margin-bottom:0">
+          <div class="card-title"><div class="tdot" style="background:var(--blue)"></div>网络拓扑</div>
+          <span id="topo-badge" class="badge b-green">正常</span>
+        </div>
+        <div class="topo-svg-wrap">
+          <svg id="topo-svg" viewBox="0 0 300 200"></svg>
+        </div>
+      </div>
+
+      <!-- WAN info 2x2 grid -->
+      <div class="wan-grid">
+        <div class="wan-cell">
+          <div class="wan-cell-lbl">外网 IP</div>
+          <div id="w-ip" class="wan-cell-val">—</div>
+          <div id="w-proto" class="wan-cell-sub">—</div>
+        </div>
+        <div class="wan-cell">
+          <div class="wan-cell-lbl">默认网关</div>
+          <div id="w-gw" class="wan-cell-val">—</div>
+          <div class="wan-cell-sub">IPv4 Gateway</div>
+        </div>
+        <div class="wan-cell" style="border-top:1px solid var(--border)">
+          <div class="wan-cell-lbl">WAN 在线时长</div>
+          <div id="w-wanup" class="wan-cell-val">—</div>
+          <div class="wan-cell-sub">连续在线</div>
+        </div>
+        <div class="wan-cell" style="border-top:1px solid var(--border)">
+          <div class="wan-cell-lbl">系统运行时长</div>
+          <div id="w-sysup" class="wan-cell-val">—</div>
+          <div id="w-load" class="wan-cell-sub">负载 —</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stats-row">
+      <div class="stat s-blue">
+        <div class="stat-head">
+          <div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 7.76a6 6 0 0 0 0 8.49"/><path d="M20.07 4.93a10 10 0 0 1 0 14.14M3.93 4.93a10 10 0 0 0 0 14.14"/></svg></div>
+          <span id="ping-trend" class="stat-trend" style="color:var(--green)">— ms</span>
+        </div>
+        <div id="s-ping" class="stat-val">—</div>
+        <div class="stat-lbl">网络延迟</div>
+        <div id="s-loss" class="stat-sub">丢包 —%</div>
+        <div class="sparkline-wrap"><canvas id="spark-ping"></canvas></div>
+      </div>
+      <div class="stat s-green">
+        <div class="stat-head">
+          <div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+          <span class="stat-trend" style="color:var(--blue2)">DHCP</span>
+        </div>
+        <div id="s-dev" class="stat-val">—</div>
+        <div class="stat-lbl">在线设备</div>
+        <div class="stat-sub">DHCP 分配</div>
+        <div class="sparkline-wrap"><canvas id="spark-dev"></canvas></div>
+      </div>
+      <div class="stat s-amber">
+        <div class="stat-head">
+          <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+          <span id="mem-trend" class="stat-trend">—</span>
+        </div>
+        <div id="s-mem" class="stat-val">—</div>
+        <div class="stat-lbl">内存占用</div>
+        <div id="s-memsub" class="stat-sub">— / —</div>
+        <div class="sparkline-wrap"><canvas id="spark-mem"></canvas></div>
+      </div>
+      <div class="stat s-purple">
+        <div class="stat-head">
+          <div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <span class="stat-trend" style="color:var(--blue2)">WAN RX</span>
+        </div>
+        <div id="s-rx" class="stat-val">—</div>
+        <div class="stat-lbl">累计下行</div>
+        <div id="s-tx" class="stat-sub">—</div>
+        <div class="sparkline-wrap"><canvas id="spark-rx"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Traffic chart + System -->
+    <div class="mid-row">
+      <div class="card" style="padding-bottom:18px">
+        <div class="card-head">
+          <div class="card-title"><div class="tdot" style="background:var(--blue)"></div>流量趋势 (近 7 天)</div>
+          <div class="card-actions">
+            <span id="traffic-today" class="badge b-blue">—</span>
+          </div>
+        </div>
+        <div style="height:200px;position:relative"><canvas id="ct-traffic"></canvas></div>
+        <div id="hist-table" style="margin-top:14px;overflow-x:auto"></div>
+      </div>
+
+      <div class="sys-panel">
+        <!-- Memory -->
+        <div class="sys-sect">
+          <div class="sys-sect-head">
+            <div class="sys-sect-title"><div class="tdot" style="background:var(--cyan)"></div>内存</div>
+            <span id="mem-badge" class="badge b-blue">0%</span>
+          </div>
+          <div class="ring-layout">
+            <div class="ring-wrap"><canvas id="ct-mem"></canvas>
+              <div class="ring-center"><div id="r-pct" class="ring-pct">—</div><div class="ring-unit">Used</div></div>
+            </div>
+            <div class="mem-rows">
+              <div class="mem-row"><span class="mem-lbl">已用</span><span id="m-used" class="mem-val">—</span></div>
+              <div class="mem-row"><span class="mem-lbl">可用</span><span id="m-avail" class="mem-val">—</span></div>
+              <div class="mem-row"><span class="mem-lbl">总计</span><span id="m-total" class="mem-val">—</span></div>
+              <div class="mem-row"><span class="mem-lbl">缓存</span><span id="m-cache" class="mem-val">—</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Load -->
+        <div class="sys-sect">
+          <div class="sys-sect-head">
+            <div class="sys-sect-title"><div class="tdot" style="background:var(--amber)"></div>CPU 负载</div>
+          </div>
+          <div class="load-items">
+            <div class="load-item"><span class="load-lbl">1m</span><div class="load-track"><div id="l1" class="load-fill"></div></div><span id="lv1" class="load-num">—</span></div>
+            <div class="load-item"><span class="load-lbl">5m</span><div class="load-track"><div id="l5" class="load-fill"></div></div><span id="lv5" class="load-num">—</span></div>
+            <div class="load-item"><span class="load-lbl">15m</span><div class="load-track"><div id="l15" class="load-fill"></div></div><span id="lv15" class="load-num">—</span></div>
+          </div>
+        </div>
+        <!-- Storage -->
+        <div class="sys-sect">
+          <div class="sys-sect-head">
+            <div class="sys-sect-title"><div class="tdot" style="background:var(--green)"></div>存储</div>
+          </div>
+          <div id="store-list" class="store-items"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Latency + Devices -->
+    <div class="btm-row">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><div class="tdot" style="background:var(--green)"></div>延迟趋势</div>
+          <span id="lat-badge" class="badge b-green">正常</span>
+        </div>
+        <div style="height:200px;position:relative"><canvas id="ct-latency"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><div class="tdot" style="background:var(--cyan)"></div>在线设备</div>
+          <span id="dev-badge" class="badge b-green">0 台</span>
+        </div>
+        <div class="tabs" id="dev-tabs">
+          <button class="tab active" data-filter="all"  onclick="filterDevices('all',this)">全部</button>
+          <button class="tab"        data-filter="apple" onclick="filterDevices('apple',this)">Apple</button>
+          <button class="tab"        data-filter="phone" onclick="filterDevices('phone',this)">手机</button>
+          <button class="tab"        data-filter="other" onclick="filterDevices('other',this)">其他</button>
+        </div>
+        <div class="search-row">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-input" id="dev-search" placeholder="搜索 IP / 主机名 / MAC…" oninput="renderDeviceList()">
+        </div>
+        <div class="d-scroll">
+          <table class="device-table">
+            <thead><tr>
+              <th style="width:30px"></th>
+              <th class="sort-th" onclick="sortDevices('hostname')">
+                主机名<span id="sort-hostname" class="sort-arr"></span>
+              </th>
+              <th class="sort-th" onclick="sortDevices('ip')">
+                IP 地址<span id="sort-ip" class="sort-arr active asc"></span>
+              </th>
+              <th>MAC</th>
+              <th>租约</th>
+            </tr></thead>
+            <tbody id="dev-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interfaces -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--blue)"></div>网络接口</div>
+        <span id="iface-badge" class="badge b-gray">—</span>
+      </div>
+      <div id="iface-grid" class="iface-grid"></div>
+    </div>
+
+    <!-- Log -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--red)"></div>系统日志</div>
+        <span id="err-badge" class="badge b-green">✓ 正常</span>
+      </div>
+      <div class="log-filter">
+        <button class="lf-btn active" id="lf-all"  onclick="setLogFilter('all',this)">全部</button>
+        <button class="lf-btn"        id="lf-err"  onclick="setLogFilter('err',this)">错误</button>
+        <button class="lf-btn"        id="lf-warn" onclick="setLogFilter('warn',this)">警告</button>
+      </div>
+      <div id="log-list" class="log-list"></div>
+    </div>
+
+    <div class="footer">GL-BE6500 · OpenWrt 23.05-SNAPSHOT · 192.168.100.1 · 每 5 分钟自动采集 · <span id="footer-ts">—</span></div>
+  </div><!-- /content -->
+
+  <!-- Traffic page -->
+  <div class="content" id="page-traffic" style="display:none">
+    <div class="section-label">流量统计</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px" id="tr-stats-row"></div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--blue)"></div>每日流量 (近 30 天)</div>
+        <span id="tr-badge" class="badge b-blue">—</span>
+      </div>
+      <div style="height:260px;position:relative"><canvas id="ct-traffic2"></canvas></div>
+    </div>
+    <!-- 7-day × 24h traffic heatmap -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--purple)"></div>流量热力图 (近7天 × 24小时)</div>
+        <span class="badge b-gray" style="font-size:11px">颜色越深 = 流量越高</span>
+      </div>
+      <div id="traffic-heatmap" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--green)"></div>历史记录</div>
+      </div>
+      <div id="tr-hist-table" style="overflow-x:auto"></div>
+    </div>
+  </div>
+
+  <!-- Devices page -->
+  <div class="content" id="page-devices" style="display:none">
+    <div class="section-label">设备管理</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px" id="dv-stats-row"></div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--cyan)"></div>所有设备</div>
+        <div class="card-actions">
+          <span id="dv-count" class="badge b-green">0 台</span>
+        </div>
+      </div>
+      <div class="tabs" id="dv-tabs">
+        <button class="tab active" data-filter="all"   onclick="dvFilter('all',this)">全部</button>
+        <button class="tab"        data-filter="apple"  onclick="dvFilter('apple',this)">Apple</button>
+        <button class="tab"        data-filter="phone"  onclick="dvFilter('phone',this)">手机</button>
+        <button class="tab"        data-filter="other"  onclick="dvFilter('other',this)">其他</button>
+      </div>
+      <div class="search-row">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" id="dv-search" placeholder="搜索 IP / 主机名 / MAC…" oninput="dvRender()">
+      </div>
+      <div style="overflow-x:auto">
+        <table class="device-table" style="min-width:600px">
+          <thead><tr>
+            <th style="width:30px"></th>
+            <th>主机名</th>
+            <th>IP 地址</th>
+            <th>MAC 地址</th>
+            <th>类型</th>
+            <th>租约剩余</th>
+          </tr></thead>
+          <tbody id="dv-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Network page -->
+  <div class="content" id="page-network" style="display:none">
+    <div class="section-label">网络详情</div>
+    <div class="overview-row">
+      <div class="topo-card">
+        <div class="card-head" style="margin-bottom:0">
+          <div class="card-title"><div class="tdot" style="background:var(--blue)"></div>网络拓扑</div>
+          <span id="net-topo-badge" class="badge b-green">正常</span>
+        </div>
+        <div class="topo-svg-wrap">
+          <svg id="net-topo-svg" viewBox="0 0 300 200"></svg>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="wan-grid" id="net-wan-grid" style="flex:1"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--blue)"></div>网络接口详情</div>
+        <span id="net-iface-badge" class="badge b-gray">—</span>
+      </div>
+      <div id="net-iface-table" style="overflow-x:auto"></div>
+    </div>
+
+    <!-- Speed Test card -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--cyan)"></div>网速测试</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="speed-last-time" class="badge b-gray">从未测试</span>
+          <button class="btn btn-primary" id="speed-run-btn" onclick="runSpeedtest()">开始测速</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:16px 0">
+        <div class="wan-cell">
+          <div class="wan-cell-lbl">下行速度</div>
+          <div id="speed-down" class="wan-cell-val" style="color:var(--cyan)">—</div>
+          <div class="wan-cell-sub">Mbps</div>
+        </div>
+        <div class="wan-cell">
+          <div class="wan-cell-lbl">上行速度</div>
+          <div id="speed-up" class="wan-cell-val" style="color:var(--green)">—</div>
+          <div class="wan-cell-sub">Mbps</div>
+        </div>
+        <div class="wan-cell">
+          <div class="wan-cell-lbl">延迟</div>
+          <div id="speed-latency" class="wan-cell-val">—</div>
+          <div class="wan-cell-sub">ms</div>
+        </div>
+        <div class="wan-cell">
+          <div class="wan-cell-lbl">抖动</div>
+          <div id="speed-jitter" class="wan-cell-val">—</div>
+          <div class="wan-cell-sub">ms</div>
+        </div>
+      </div>
+      <div style="height:160px;position:relative">
+        <canvas id="speed-history-chart"></canvas>
+        <div id="speed-no-data" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px">暂无历史数据，点击"开始测速"进行测试</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts page -->
+  <div class="content" id="page-alerts" style="display:none">
+    <div class="section-label">系统告警</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px" id="al-stats-row"></div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--red)"></div>系统日志</div>
+        <span id="al-badge" class="badge b-green">✓ 正常</span>
+      </div>
+      <div class="log-filter">
+        <button class="lf-btn active" id="alf-all"  onclick="alFilter('all',this)">全部</button>
+        <button class="lf-btn"        id="alf-err"  onclick="alFilter('err',this)">错误</button>
+        <button class="lf-btn"        id="alf-warn" onclick="alFilter('warn',this)">警告</button>
+        <button class="lf-btn"        id="alf-info" onclick="alFilter('info',this)">信息</button>
+      </div>
+      <div class="search-row" style="margin-bottom:10px">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" id="al-search" placeholder="搜索日志…" oninput="alRender()">
+      </div>
+      <div id="al-log-list" class="log-list" style="max-height:400px"></div>
+    </div>
+  </div>
+
+  <!-- Events / Timeline page -->
+  <div class="content" id="page-events" style="display:none">
+    <div class="section-label">事件时间轴</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap" id="evt-filters">
+      <button class="lf-btn active" onclick="evtFilter(null,this)">全部</button>
+      <button class="lf-btn" onclick="evtFilter('new_device',this)">新设备</button>
+      <button class="lf-btn" onclick="evtFilter('anomaly',this)">异常</button>
+      <button class="lf-btn" onclick="evtFilter('wan_down',this)">WAN 断线</button>
+      <button class="lf-btn" onclick="evtFilter('wan_up',this)">WAN 恢复</button>
+      <button class="lf-btn" onclick="evtFilter('budget_warn',this)">流量预警</button>
+      <button class="lf-btn" onclick="evtFilter('diagnosis',this)">诊断</button>
+      <button class="lf-btn" onclick="evtFilter('ai_summary',this)">AI 日报</button>
+      <button class="lf-btn" onclick="evtFilter('security',this)">安全</button>
+      <button class="lf-btn" onclick="evtFilter('remediation',this)">自动修复</button>
+      <button class="lf-btn" onclick="evtFilter('speedtest',this)">测速</button>
+      <button class="lf-btn" onclick="evtFilter('packages',this)">插件</button>
+      <button class="lf-btn" onclick="evtFilter('backup',this)">备份</button>
+    </div>
+    <div id="evt-timeline" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button id="evt-more" onclick="evtLoadMore()" style="display:none;align-self:center;margin-top:4px" class="lf-btn">加载更多</button>
+  </div>
+
+  <!-- WiFi page -->
+  <section class="page" id="page-wifi">
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb-text">Smart Homelab › 无线网络</div>
+        <h1 class="page-title">无线网络</h1>
+      </div>
+      <button class="btn" onclick="loadWifi()">刷新</button>
+    </div>
+    <div class="page-body">
+      <div class="grid-3" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-label">当前连接设备</div>
+          <div class="stat-val" id="wifi-total">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">平均信号强度</div>
+          <div class="stat-val" id="wifi-avg-signal">—</div>
+          <div class="stat-sub">dBm</div>
+        </div>
+        <div class="card">
+          <div class="card-label">频段分布</div>
+          <div style="display:flex;gap:8px;margin-top:8px" id="wifi-band-pills"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><span class="card-title">当前无线客户端</span></div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>设备</th><th>MAC</th><th>IP</th><th>频段</th><th>信号</th><th>下行速率</th><th>上行速率</th></tr></thead>
+            <tbody id="wifi-clients-tbody"><tr><td colspan="7" class="empty-state">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">历史客户端数量 (7天)</span></div>
+        <div style="height:200px"><canvas id="wifi-history-chart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Security page -->
+  <section class="page" id="page-security">
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb-text">Smart Homelab › 安全审计</div>
+        <h1 class="page-title">安全审计</h1>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="loadSecurity()">刷新</button>
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="grid-3" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-label">SSH 失败尝试 (24h)</div>
+          <div class="stat-val" id="sec-ssh-fails">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">已封锁 IP</div>
+          <div class="stat-val" id="sec-blocked-count">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">防火墙拦截</div>
+          <div class="stat-val" id="sec-fw-drops">—</div>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">已封锁 IP</span></div>
+          <div id="sec-blocked-list" style="font-size:13px"></div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <input id="sec-block-ip" class="input" placeholder="输入 IP 地址..." style="flex:1;padding:6px 10px;background:var(--inset);border:1px solid var(--border2);border-radius:var(--r-xs);color:var(--text);font-size:13px">
+            <button class="btn" onclick="blockIp()">封锁</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">最近安全事件 (24h)</span></div>
+          <div id="sec-events-list" style="font-size:13px;max-height:200px;overflow-y:auto"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">SSH 攻击来源</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>来源 IP</th><th>失败次数</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="sec-ssh-tbody"><tr><td colspan="4" class="empty-state">暂无数据</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plugins page -->
+  <section class="page" id="page-plugins">
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb-text">Smart Homelab › 插件管理</div>
+        <h1 class="page-title">插件管理</h1>
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="grid-3" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-label">已安装软件包</div>
+          <div class="stat-val" id="pkg-installed-count">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">可更新软件包</div>
+          <div class="stat-val" id="pkg-upgrade-count" style="color:var(--amber)">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">快速安装</div>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <input id="pkg-install-input" class="input" placeholder="软件包名..." style="flex:1;padding:6px 10px;background:var(--inset);border:1px solid var(--border2);border-radius:var(--r-xs);color:var(--text);font-size:13px">
+            <button class="btn" onclick="installPackage()">安装</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:20px" id="pkg-upgrades-card">
+        <div class="card-header"><span class="card-title">可更新软件包</span><span class="badge badge-warn" id="pkg-upgrade-badge">0</span></div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>软件包</th><th>当前版本</th><th>最新版本</th><th>操作</th></tr></thead>
+            <tbody id="pkg-upgrade-tbody"><tr><td colspan="4" class="empty-state">无可更新软件包</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">已安装软件包</span>
+          <input id="pkg-search" oninput="filterPackages()" placeholder="搜索..." style="padding:4px 10px;background:var(--inset);border:1px solid var(--border2);border-radius:var(--r-xs);color:var(--text);font-size:12px;width:160px">
+        </div>
+        <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+          <table class="data-table">
+            <thead><tr><th>软件包</th><th>版本</th><th>描述</th><th>操作</th></tr></thead>
+            <tbody id="pkg-list-tbody"><tr><td colspan="4" class="empty-state">加载中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Backup page -->
+  <section class="page" id="page-backup">
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb-text">Smart Homelab › 配置备份</div>
+        <h1 class="page-title">配置备份</h1>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="createBackup()">立即备份</button>
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="grid-3" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-label">备份总数</div>
+          <div class="stat-val" id="backup-total">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">最近备份</div>
+          <div class="stat-val" style="font-size:16px" id="backup-last-time">—</div>
+        </div>
+        <div class="card">
+          <div class="card-label">自动修复模式</div>
+          <div class="stat-val" style="font-size:18px" id="remediation-mode">—</div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><span class="card-title">备份历史</span></div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>时间</th><th>文件名</th><th>大小</th><th>备注</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="backup-tbody"><tr><td colspan="6" class="empty-state">暂无备份</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">自动修复操作日志</span></div>
+        <div style="overflow-x:auto;max-height:320px;overflow-y:auto">
+          <table class="data-table">
+            <thead><tr><th>时间</th><th>问题</th><th>动作</th><th>结果</th><th>是否自动</th></tr></thead>
+            <tbody id="remediation-tbody"><tr><td colspan="5" class="empty-state">暂无记录</td></tr></tbody>
+          </table>
+        </div>
+        <div style="margin-top:16px">
+          <div class="card-label" style="margin-bottom:8px">手动执行操作</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <button class="btn" onclick="manualFix('restart_wan')">重启 WAN</button>
+            <button class="btn" onclick="manualFix('restart_dnsmasq')">重启 DNS</button>
+            <button class="btn" onclick="manualFix('restart_wifi')">重启 WiFi</button>
+            <button class="btn" onclick="manualFix('drop_caches')">清理缓存</button>
+            <button class="btn" onclick="manualFix('restart_firewall')">重启防火墙</button>
+            <button class="btn" style="color:var(--red)" onclick="if(confirm('确认重启路由器？'))manualFix('reboot')">重启路由器</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI Summary page -->
+  <div class="content" id="page-ai" style="display:none">
+    <div class="section-label">AI 智能分析</div>
+
+    <!-- Score row -->
+    <div style="display:grid;grid-template-columns:200px 1fr;gap:18px;align-items:start">
+      <!-- Gauge card -->
+      <div class="card" style="padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)">健康评分</div>
+        <div style="position:relative;width:130px;height:72px;overflow:visible">
+          <canvas id="ct-gauge" width="130" height="72"></canvas>
+          <div style="position:absolute;bottom:0;left:0;right:0;text-align:center">
+            <div id="gauge-val" style="font-size:30px;font-weight:800;letter-spacing:-1px;color:var(--text)">—</div>
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">/ 100</div>
+          </div>
+        </div>
+        <div id="gauge-label" style="font-size:11px;font-weight:600;color:var(--green)">良好</div>
+        <div style="width:100%;display:flex;flex-direction:column;gap:5px" id="score-components"></div>
+      </div>
+
+      <!-- Score history mini chart -->
+      <div class="card" style="padding:20px">
+        <div class="card-head" style="margin-bottom:14px">
+          <div class="card-title"><div class="tdot" style="background:var(--blue)"></div>评分趋势 (近 7 天)</div>
+        </div>
+        <div style="height:140px;position:relative"><canvas id="ct-score-hist"></canvas></div>
+        <div id="ai-score-stats" style="display:flex;gap:20px;margin-top:12px;justify-content:center"></div>
+      </div>
+    </div>
+
+    <!-- Anomalies -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--amber)"></div>近 24 小时异常检测</div>
+        <span id="anomaly-badge" class="badge b-gray">检测中…</span>
+      </div>
+      <div id="anomaly-list"></div>
+    </div>
+
+    <!-- AI Daily Summary -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--purple)"></div>AI 每日分析</div>
+        <div class="card-actions">
+          <span id="ai-sum-time" class="badge b-gray" style="font-family:'JetBrains Mono',monospace">—</span>
+          <button class="icon-btn" id="ai-sum-btn" onclick="aiGenerateSummary()" title="重新生成">
+            <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="ai-summary-body" style="font-size:13px;line-height:1.8;color:var(--text2);min-height:60px">
+        <div style="color:var(--text3);font-style:italic">暂无 AI 分析，点击右上角按钮生成（需要 Anthropic API Key）</div>
+      </div>
+    </div>
+
+    <!-- Device Behavior Table -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--cyan)"></div>设备行为分析</div>
+        <span id="ai-dev-badge" class="badge b-gray">—</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="hist-tbl" id="ai-dev-table" style="min-width:600px">
+          <thead><tr>
+            <th style="text-align:left">设备</th>
+            <th>首次发现</th>
+            <th>最近在线</th>
+            <th>出现次数</th>
+            <th style="min-width:120px">活跃时段 (24h)</th>
+          </tr></thead>
+          <tbody id="ai-dev-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Log Analysis -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--red)"></div>AI 日志分析</div>
+        <button class="icon-btn" id="ai-log-btn" onclick="aiAnalyzeLogs()" title="分析日志">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+      </div>
+      <div id="ai-log-result" style="font-size:13px;line-height:1.8;color:var(--text2)">
+        <div style="color:var(--text3);font-style:italic">点击右上角按钮让 AI 分析当前系统日志</div>
+      </div>
+    </div>
+
+    <!-- Diagnose -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--green)"></div>网络自动诊断</div>
+        <button class="lf-btn" onclick="aiRunDiagnosis()" id="ai-diag-btn">开始诊断</button>
+      </div>
+      <div id="ai-diag-result"></div>
+    </div>
+
+    <!-- AI Q&A Chat -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><div class="tdot" style="background:var(--cyan)"></div>AI 网络问答</div>
+        <span class="badge b-gray" style="font-size:11px">基于实时数据回答</span>
+      </div>
+      <div id="ai-chat-messages" style="min-height:80px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 0 10px"></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <input id="ai-chat-input" class="input" placeholder="问我任何网络问题，例如：最近7天网络为什么慢？" style="flex:1;padding:9px 14px;background:var(--inset);border:1px solid var(--border2);border-radius:var(--r-xs);color:var(--text);font-size:13px;outline:none" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiAsk()}">
+        <button class="btn btn-primary" id="ai-ask-btn" onclick="aiAsk()">发送</button>
+      </div>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px" id="ai-quick-questions">
+        <button class="lf-btn" onclick="aiAskQuick('最近7天网络健康状况如何？')">最近7天状况</button>
+        <button class="lf-btn" onclick="aiAskQuick('当前网速是否正常？')">当前网速</button>
+        <button class="lf-btn" onclick="aiAskQuick('有哪些异常事件需要关注？')">异常事件</button>
+        <button class="lf-btn" onclick="aiAskQuick('本月流量使用是否合理？')">流量使用</button>
+        <button class="lf-btn" onclick="aiAskQuick('有哪些运维建议？')">运维建议</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- Device Detail Drawer -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="device-drawer">
+  <div class="drawer-header">
+    <div class="drawer-title">
+      <div id="drawer-icon" class="drawer-type-icon">🖥</div>
+      <div>
+        <div id="drawer-name" style="font-size:16px;font-weight:700">设备详情</div>
+        <div id="drawer-sub" style="font-size:11px;color:var(--text3);margin-top:2px">—</div>
+      </div>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body">
+    <!-- Basic info -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">网络信息</div>
+      <div class="drawer-row"><span class="drawer-row-lbl">IP 地址</span><span id="dw-ip" class="drawer-row-val">—</span></div>
+      <div class="drawer-row"><span class="drawer-row-lbl">MAC 地址</span><span id="dw-mac" class="drawer-row-val">—</span></div>
+      <div class="drawer-row"><span class="drawer-row-lbl">DHCP 租约剩余</span><span id="dw-ttl" class="drawer-row-val">—</span></div>
+    </div>
+    <!-- Device history -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">在线记录</div>
+      <div class="drawer-row"><span class="drawer-row-lbl">首次发现</span><span id="dw-first" class="drawer-row-val">—</span></div>
+      <div class="drawer-row"><span class="drawer-row-lbl">最近在线</span><span id="dw-last" class="drawer-row-val">—</span></div>
+      <div class="drawer-row"><span class="drawer-row-lbl">累计出现</span><span id="dw-count" class="drawer-row-val">—</span></div>
+      <div class="drawer-row"><span class="drawer-row-lbl">设备类型</span><span id="dw-type" class="drawer-row-val">—</span></div>
+    </div>
+    <!-- 24h activity heatmap -->
+    <div class="drawer-section">
+      <div class="drawer-section-title">24 小时活跃热图</div>
+      <div class="drawer-activity">
+        <div id="dw-activity" class="activity-grid"></div>
+        <div class="activity-hours">
+          <span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- Settings page -->
+  <section class="page" id="page-settings">
+    <div class="page-header">
+      <div>
+        <div class="breadcrumb-text">Smart Homelab › 系统设置</div>
+        <h1 class="page-title">系统设置</h1>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
+      </div>
+    </div>
+    <div class="page-body">
+
+      <!-- Connection test banner -->
+      <div id="settings-banner" style="display:none;padding:10px 16px;border-radius:8px;margin-bottom:16px;font-size:13px"></div>
+
+      <!-- Router SSH -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <span class="card-title">路由器 SSH 连接</span>
+          <button class="btn" style="font-size:12px;padding:5px 12px" onclick="testConnection()">测试连接</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 0 4px">
+          <div>
+            <div class="card-label" style="margin-bottom:4px">IP 地址 / 主机名</div>
+            <input id="cfg-router-host" type="text" placeholder="192.168.1.1" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <div class="card-label" style="margin-bottom:4px">SSH 端口</div>
+            <input id="cfg-router-port" type="number" placeholder="22" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <div class="card-label" style="margin-bottom:4px">用户名</div>
+            <input id="cfg-router-user" type="text" placeholder="root" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <div class="card-label" style="margin-bottom:4px">密码</div>
+            <input id="cfg-router-pass" type="password" placeholder="留空则不修改" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          </div>
+        </div>
+      </div>
+
+      <!-- AI -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><span class="card-title">AI 配置（可选）</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 0 4px">
+          <div style="grid-column:1/-1">
+            <div class="card-label" style="margin-bottom:4px">API Key</div>
+            <input id="cfg-ai-key" type="password" placeholder="sk-ant-api… （留空则不修改）" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <div class="card-label" style="margin-bottom:4px">API Host</div>
+            <input id="cfg-ai-host" type="text" placeholder="api.anthropic.com" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <div class="card-label" style="margin-bottom:4px">Model</div>
+            <input id="cfg-ai-model" type="text" placeholder="claude-sonnet-4-6" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          </div>
+        </div>
+      </div>
+
+      <!-- Telegram -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><span class="card-title">Telegram 通知（可选）</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 0 4px">
+          <div>
+            <div class="card-label" style="margin-bottom:4px">Bot Token</div>
+            <input id="cfg-tg-token" type="password" placeholder="留空则不修改" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <div class="card-label" style="margin-bottom:4px">Chat ID</div>
+            <input id="cfg-tg-chat" type="text" placeholder="123456789" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          </div>
+        </div>
+      </div>
+
+      <!-- Operational -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">运营参数</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 0 4px">
+          <div>
+            <div class="card-label" style="margin-bottom:4px">月流量预算 (GB)</div>
+            <input id="cfg-budget" type="number" placeholder="0 = 不限" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <div class="card-label" style="margin-bottom:4px">采集间隔 (秒)</div>
+            <input id="cfg-interval" type="number" placeholder="300" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <div class="card-label" style="margin-bottom:4px">自动修复模式</div>
+            <select id="cfg-remediation" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px">
+              <option value="observe">仅观察</option>
+              <option value="auto">自动修复</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</div><!-- /app -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Mobile bottom nav -->
+<nav id="mobile-nav">
+  <button class="mnav-item active" data-page="overview" onclick="setNav(this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    <span>概览</span>
+  </button>
+  <button class="mnav-item" data-page="traffic" onclick="setNav(this)">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span>流量</span>
+  </button>
+  <button class="mnav-item" data-page="devices" onclick="setNav(this)">
+    <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    <span>设备</span>
+  </button>
+  <button class="mnav-item" data-page="security" onclick="setNav(this)">
+    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <span>安全</span>
+  </button>
+  <button class="mnav-item" data-page="ai" onclick="setNav(this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+    <span>AI</span>
+  </button>
+</nav>
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  State
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const html = document.documentElement;
+let allDevices = [];
+let devFilter  = 'all';
+let devSort    = { col: 'ip', dir: 1 };
+let logFilter  = 'all';
+let lastLatest = null, lastHistory = null;
+let currentPage = 'overview';
+let prevIfaceBytes = {};
+let prevStats = { ping: null, mem: null };
+
+// Charts
+let ctTraffic=null, ctLatency=null, ctMem=null;
+let sparkPing=null, sparkDev=null, sparkMem=null, sparkRx=null;
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Theme
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+html.setAttribute('data-theme', localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light'));
+updateThemeIcon();
+
+document.getElementById('theme-btn').addEventListener('click', () => {
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  updateThemeIcon();
+  if (lastLatest && lastHistory) buildCharts(lastLatest, lastHistory);
+});
+
+function updateThemeIcon() {
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  document.getElementById('theme-icon').innerHTML = isDark
+    ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+    : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Sidebar
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let sidebarOpen = false;
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('expanded', sidebarOpen);
+}
+function setNav(el) {
+  document.querySelectorAll('.nav-item,.mnav-item').forEach(e => e.classList.remove('active'));
+  // Sync both sidebar and mobile nav
+  document.querySelectorAll(`[data-page="${el.dataset.page}"]`).forEach(e => e.classList.add('active'));
+  const page = el.dataset.page || 'overview';
+  currentPage = page;
+  document.querySelectorAll('.content[id^="page-"], section.page[id^="page-"]').forEach(p => {
+    p.style.display = 'none';
+    p.classList.remove('active');
+  });
+  const pg = document.getElementById('page-' + page);
+  if (pg) {
+    pg.style.display = 'flex';
+    if (pg.classList.contains('page')) pg.classList.add('active');
+    pg.classList.remove('page-enter');
+    void pg.offsetWidth; // reflow to restart animation
+    pg.classList.add('page-enter');
+  }
+  renderPage(page);
+}
+
+function renderPage(page) {
+  if (!lastLatest) return;
+  if (page === 'traffic')  renderTrafficPage(lastLatest, lastHistory || []);
+  if (page === 'devices')  renderDevicesPage(lastLatest);
+  if (page === 'network')  renderNetworkPage(lastLatest);
+  if (page === 'alerts')   renderAlertsPage(lastLatest);
+  if (page === 'events')   renderEventsPage();
+  if (page === 'ai')       renderAiPage();
+  if (page === 'wifi')     loadWifi();
+  if (page === 'security') loadSecurity();
+  if (page === 'plugins')  loadPlugins();
+  if (page === 'backup')   loadBackup();
+  if (page === 'network')  loadSpeed();
+  if (page === 'settings') loadSettings();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Settings
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function loadSettings() {
+  try {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    $('cfg-router-host').value  = cfg.router_host  || '';
+    $('cfg-router-user').value  = cfg.router_user  || 'root';
+    $('cfg-router-port').value  = cfg.router_port  || 22;
+    $('cfg-router-pass').value  = '';  // never pre-fill password
+    $('cfg-ai-host').value      = cfg.ai_host   || 'api.anthropic.com';
+    $('cfg-ai-model').value     = cfg.ai_model  || 'claude-sonnet-4-6';
+    $('cfg-ai-key').value       = '';
+    $('cfg-tg-token').value     = '';
+    $('cfg-tg-chat').value      = cfg.telegram_chat_id || '';
+    $('cfg-budget').value       = cfg.monthly_budget_gb || 0;
+    $('cfg-interval').value     = cfg.collect_interval_s || 300;
+    $('cfg-remediation').value  = cfg.remediation_mode || 'observe';
+  } catch(e) { showBanner('error', '加载配置失败: ' + e.message); }
+}
+
+async function saveSettings() {
+  const updates = {
+    router_host:        $('cfg-router-host').value.trim(),
+    router_user:        $('cfg-router-user').value.trim() || 'root',
+    router_port:        parseInt($('cfg-router-port').value) || 22,
+    ai_host:            $('cfg-ai-host').value.trim() || 'api.anthropic.com',
+    ai_model:           $('cfg-ai-model').value.trim() || 'claude-sonnet-4-6',
+    telegram_chat_id:   $('cfg-tg-chat').value.trim(),
+    monthly_budget_gb:  parseFloat($('cfg-budget').value) || 0,
+    collect_interval_s: parseInt($('cfg-interval').value) || 300,
+    remediation_mode:   $('cfg-remediation').value,
+  };
+  // Only send passwords if user filled them in
+  const pass = $('cfg-router-pass').value;
+  if (pass) updates.router_pass = pass;
+  const aiKey = $('cfg-ai-key').value.trim();
+  if (aiKey) updates.ai_key = aiKey;
+  const tgToken = $('cfg-tg-token').value.trim();
+  if (tgToken) updates.telegram_token = tgToken;
+
+  try {
+    const r = await fetch('/api/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(updates) });
+    const j = await r.json();
+    if (j.ok) {
+      showBanner('ok', '设置已保存');
+      $('cfg-router-pass').value = '';
+      $('cfg-ai-key').value      = '';
+      $('cfg-tg-token').value    = '';
+    } else showBanner('error', '保存失败: ' + (j.error || '未知错误'));
+  } catch(e) { showBanner('error', '保存失败: ' + e.message); }
+}
+
+async function testConnection() {
+  const btn = document.querySelector('button[onclick="testConnection()"]');
+  btn.disabled = true; btn.textContent = '测试中…';
+  try {
+    const r = await fetch('/api/setup/test-connection', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        host: $('cfg-router-host').value.trim(),
+        user: $('cfg-router-user').value.trim() || 'root',
+        pass: $('cfg-router-pass').value,
+        port: parseInt($('cfg-router-port').value) || 22,
+      })
+    });
+    const j = await r.json();
+    if (j.ok) showBanner('ok', '✅ 连接成功！');
+    else      showBanner('error', '❌ 连接失败: ' + (j.error || '未知'));
+  } catch(e) { showBanner('error', '测试失败: ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '测试连接'; }
+}
+
+function showBanner(type, msg) {
+  const el = $('settings-banner');
+  el.style.display = 'block';
+  el.style.background = type === 'ok' ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)';
+  el.style.color      = type === 'ok' ? 'var(--green)'        : 'var(--red)';
+  el.style.border     = `1px solid ${type === 'ok' ? 'var(--green)' : 'var(--red)'}`;
+  el.textContent = msg;
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Helpers
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const $ = id => document.getElementById(id);
+function animateNumber(el, target, duration=600, suffix='') {
+  if (!el) return;
+  const start = parseFloat(el.dataset.current || '0') || 0;
+  const diff  = target - start;
+  if (Math.abs(diff) < 0.5) { el.textContent = target + suffix; return; }
+  const startTime = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    // Ease out cubic
+    const ease = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.round(start + diff * ease) + suffix;
+    if (t < 1) requestAnimationFrame(step);
+    else { el.textContent = target + suffix; el.dataset.current = target; }
+  }
+  requestAnimationFrame(step);
+  el.dataset.current = target;
+}
+function fmtB(b, d=1) {
+  if (b==null||b<0) return '—';
+  if (b>=1e12) return (b/1e12).toFixed(d)+' TB';
+  if (b>=1e9)  return (b/1e9).toFixed(d)+' GB';
+  if (b>=1e6)  return (b/1e6).toFixed(d)+' MB';
+  if (b>=1e3)  return (b/1e3).toFixed(d)+' KB';
+  return b+' B';
+}
+function fmtKB(kb) { return fmtB(kb*1024); }
+function fmtSec(s) {
+  if (!s) return '—';
+  const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);
+  return d>0?`${d}d ${h}h ${m}m`:h>0?`${h}h ${m}m`:`${m}m`;
+}
+function cv(name) { return getComputedStyle(html).getPropertyValue(name).trim(); }
+function isLight() { return html.getAttribute('data-theme')==='light'; }
+function gridC()  { return isLight()?'rgba(0,0,0,0.05)':'rgba(255,255,255,0.04)'; }
+function tickC()  { return isLight()?'#9aafc8':'#35485e'; }
+function tipBg()  { return isLight()?'#ffffff':'#0f1929'; }
+function tipBdr() { return isLight()?'rgba(0,0,0,0.1)':'rgba(255,255,255,0.08)'; }
+function tipTxt() { return isLight()?'#182336':'#d8e4f0'; }
+
+function findWan(d) {
+  const dev = d.wan.device;
+  if (dev) { const i=d.interfaces.find(x=>x.name===dev); if(i) return i; }
+  for (const n of ['eth0','eth1','wan']) { const i=d.interfaces.find(x=>x.name===n); if(i) return i; }
+  return null;
+}
+function niceIfaces(arr) {
+  const hide=new Set(['lo','ip6tnl0','tunl0','gre0','gretap0','erspan0','sit0']);
+  return arr.filter(i=>!hide.has(i.name)&&!i.name.startsWith('ifb')&&(i.rx_bytes>0||i.tx_bytes>0)).slice(0,12);
+}
+function loadC(v) { return v>=3?cv('--red'):v>=1.5?cv('--amber'):cv('--blue'); }
+function pingC(ms) { return ms==null?cv('--red'):ms>100?cv('--amber'):cv('--green'); }
+
+// Trend delta helper
+function trendHtml(curr, prev, unit, higherIsBad=true) {
+  if (prev == null || curr == null) return `<span style="color:var(--text3)">—</span>`;
+  const delta = curr - prev;
+  if (Math.abs(delta) < (unit==='ms'?1:0.5)) return `<span style="color:var(--text3)">→ 持平</span>`;
+  const worse = higherIsBad ? delta > 0 : delta < 0;
+  const color = worse ? (Math.abs(delta)>10?'var(--red)':'var(--amber)') : 'var(--green)';
+  const arrow = delta > 0 ? '↑' : '↓';
+  return `<span style="color:${color}">${arrow}${Math.abs(delta).toFixed(unit==='ms'?0:1)}${unit}</span>`;
+}
+
+// IP to number for sorting
+function ipToNum(ip) { return ip.split('.').reduce((a,v)=>a*256+parseInt(v),0); }
+
+// Device type detection
+function devType(h) {
+  if (!h) return { icon:'🖥', label:'未知设备', filter:'other' };
+  const n = h.toLowerCase();
+  if (/macbook|mac|imac/.test(n)) return { icon:'💻', label:'Mac', filter:'apple' };
+  if (/iphone|ipad|ipod/.test(n)) return { icon:'📱', label:'iPhone/iPad', filter:'apple' };
+  if (/apple/.test(n))            return { icon:'🍎', label:'Apple 设备', filter:'apple' };
+  if (/xiaomi|redmi|mi-/.test(n)) return { icon:'📱', label:'小米', filter:'phone' };
+  if (/huawei|honor/.test(n))     return { icon:'📱', label:'华为', filter:'phone' };
+  if (/android|phone|pixel|samsung|oppo|vivo/.test(n)) return { icon:'📱', label:'Android', filter:'phone' };
+  if (/router|openwrt|qwrt|padavan/.test(n)) return { icon:'📡', label:'路由器', filter:'other' };
+  if (/tv|roku|chromecast|fire/.test(n)) return { icon:'📺', label:'电视', filter:'other' };
+  if (/nas|synology|qnap/.test(n)) return { icon:'🗄', label:'NAS', filter:'other' };
+  return { icon:'🖥', label:'设备', filter:'other' };
+}
+
+// Lease TTL display
+function leaseTtl(expires) {
+  const now = Math.floor(Date.now()/1000);
+  const ttl = expires - now;
+  if (ttl < 0)      return `<span style="color:var(--red);font-size:10px">已过期</span>`;
+  if (ttl < 3600)   return `<span style="color:var(--amber);font-size:10px;font-family:'JetBrains Mono',monospace">${Math.floor(ttl/60)}m</span>`;
+  if (ttl < 86400)  return `<span style="color:var(--text2);font-size:10px;font-family:'JetBrains Mono',monospace">${Math.floor(ttl/3600)}h</span>`;
+  return `<span style="color:var(--text3);font-size:10px;font-family:'JetBrains Mono',monospace">${Math.floor(ttl/86400)}d</span>`;
+}
+
+// Log severity
+function logLevel(e) {
+  const txt = (e.message+e.daemon).toLowerCase();
+  if (/warn/.test(txt)) return 'warn';
+  if (/error|fail|timeout|denied|crit/.test(txt)) return 'err';
+  return 'info';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Topology SVG (SVG-path icons, no emoji)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function buildTopology(d, svgId='topo-svg') {
+  const svg = $(svgId);
+  const W=300, H=200, cx=150;
+  const devices = d.dhcp_leases.slice(0,8);
+  const n = devices.length;
+  const isDk = !isLight();
+  const nodeStroke = isDk ? 'rgba(255,255,255,0.13)' : 'rgba(0,0,0,0.1)';
+  const nodeFill   = isDk ? '#132034' : '#f0f5fb';
+  const textFill   = isDk ? '#6b82a0' : '#4e6480';
+  const lineC      = isDk ? 'rgba(0,111,255,0.45)' : 'rgba(0,93,224,0.35)';
+  const iconC      = isDk ? '#d8e4f0' : '#182336';
+  const wanUp      = d.wan.up;
+
+  function iconCloud(x, y, s=0.9) {
+    return `<g transform="translate(${x-10*s},${y-7*s}) scale(${s})">
+      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" fill="none" stroke="${iconC}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>`;
+  }
+  function iconRouter(x, y, s=0.9) {
+    return `<g transform="translate(${x-10*s},${y-10*s}) scale(${s})">
+      <rect x="2" y="6" width="20" height="11" rx="2" fill="none" stroke="${iconC}" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="6" y1="6" x2="6" y2="2" stroke="${iconC}" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="10" y1="6" x2="10" y2="2" stroke="${iconC}" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="18" cy="11.5" r="1.5" fill="${iconC}"/>
+    </g>`;
+  }
+  function iconDevice(x, y, hostname, s=0.75) {
+    const h = (hostname||'').toLowerCase();
+    const isPhone  = /iphone|ipad|ipod|android|phone|pixel|xiaomi|redmi|huawei|honor|samsung|oppo|vivo/.test(h);
+    const isMac    = /macbook|mac|imac|laptop/.test(h);
+    const isTV     = /tv|roku|chromecast|fire/.test(h);
+    const isNAS    = /nas|synology|qnap/.test(h);
+    if (isPhone) {
+      // Phone: tall rounded rect with home button
+      return `<g transform="translate(${x-5.5*s},${y-9*s}) scale(${s})">
+        <rect x="1" y="0" width="9" height="16" rx="2" fill="none" stroke="${iconC}" stroke-width="1.5"/>
+        <circle cx="5.5" cy="13.5" r="1" fill="${iconC}"/>
+        <line x1="3.5" y1="2" x2="7.5" y2="2" stroke="${iconC}" stroke-width="1.2" stroke-linecap="round"/>
+      </g>`;
+    }
+    if (isMac) {
+      // Laptop: screen + base
+      return `<g transform="translate(${x-9*s},${y-8*s}) scale(${s})">
+        <rect x="1" y="1" width="16" height="10" rx="1.5" fill="none" stroke="${iconC}" stroke-width="1.5"/>
+        <line x1="0" y1="12" x2="18" y2="12" stroke="${iconC}" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="4" y1="12" x2="14" y2="14" stroke="${iconC}" stroke-width="1.3" stroke-linecap="round"/>
+      </g>`;
+    }
+    if (isTV) {
+      // TV: wide rect with stand
+      return `<g transform="translate(${x-9*s},${y-7*s}) scale(${s})">
+        <rect x="1" y="1" width="16" height="10" rx="1.5" fill="none" stroke="${iconC}" stroke-width="1.5"/>
+        <line x1="9" y1="11" x2="9" y2="14" stroke="${iconC}" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="6" y1="14" x2="12" y2="14" stroke="${iconC}" stroke-width="1.5" stroke-linecap="round"/>
+      </g>`;
+    }
+    if (isNAS) {
+      // NAS: server stack
+      return `<g transform="translate(${x-7*s},${y-7*s}) scale(${s})">
+        <rect x="1" y="1" width="12" height="4" rx="1" fill="none" stroke="${iconC}" stroke-width="1.3"/>
+        <rect x="1" y="6" width="12" height="4" rx="1" fill="none" stroke="${iconC}" stroke-width="1.3"/>
+        <circle cx="11" cy="3" r="0.8" fill="${iconC}"/>
+        <circle cx="11" cy="8" r="0.8" fill="${iconC}"/>
+      </g>`;
+    }
+    // Generic desktop/device
+    return `<g transform="translate(${x-8*s},${y-8*s}) scale(${s})">
+      <rect x="2" y="2" width="14" height="10" rx="1.5" fill="none" stroke="${iconC}" stroke-width="1.5"/>
+      <line x1="9" y1="12" x2="9" y2="15" stroke="${iconC}" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="6" y1="15" x2="12" y2="15" stroke="${iconC}" stroke-width="1.5" stroke-linecap="round"/>
+    </g>`;
+  }
+
+  let out = `<defs>
+    <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="${lineC}"/>
+    </marker>
+  </defs>`;
+
+  // Internet node
+  out += `<circle cx="${cx}" cy="24" r="18" fill="${nodeFill}" stroke="${nodeStroke}" stroke-width="1.5"/>`;
+  out += iconCloud(cx, 24);
+  out += `<text x="${cx}" y="52" text-anchor="middle" font-size="9" fill="${textFill}" font-family="Inter,sans-serif">Internet</text>`;
+
+  // WAN line (animated if up)
+  if (wanUp) {
+    out += `<line x1="${cx}" y1="42" x2="${cx}" y2="82"
+      stroke="${lineC}" stroke-width="1.5" stroke-dasharray="5 3"
+      style="animation:flowLine 1.5s linear infinite"/>`;
+  } else {
+    out += `<line x1="${cx}" y1="42" x2="${cx}" y2="82"
+      stroke="var(--red)" stroke-width="1.5" stroke-dasharray="4 4" opacity=".5"/>`;
+  }
+
+  // Router node
+  const routerGlow = isDk ? 'rgba(0,111,255,0.35)' : 'rgba(0,93,224,0.2)';
+  out += `<circle cx="${cx}" cy="100" r="22" fill="${nodeFill}" stroke="rgba(0,111,255,0.5)" stroke-width="1.8"/>`;
+  if (wanUp) out += `<circle cx="${cx}" cy="100" r="26" fill="none" stroke="${routerGlow}" stroke-width="1" opacity=".6"/>`;
+  out += iconRouter(cx, 100);
+  out += `<text x="${cx}" y="134" text-anchor="middle" font-size="9" fill="${textFill}" font-family="Inter,sans-serif">GL-BE6500</text>`;
+  out += `<text x="${cx}" y="145" text-anchor="middle" font-size="8" fill="${isDk?'#35485e':'#9aafc8'}" font-family="JetBrains Mono,monospace">${d.wan.ipv4_address||'—'}</text>`;
+
+  // Devices
+  if (n > 0) {
+    const spacing = Math.min(34, (W-40) / Math.max(n,1));
+    const totalW = spacing * (n-1);
+    const startX = cx - totalW/2;
+    const sy = 178;
+
+    devices.forEach((dev, i) => {
+      const x = startX + i*spacing;
+      out += `<line x1="${cx}" y1="122" x2="${x}" y2="${sy-13}"
+        stroke="${lineC}" stroke-width="1" stroke-dasharray="3 3" opacity=".65"/>`;
+      out += `<circle cx="${x}" cy="${sy}" r="13" fill="${nodeFill}" stroke="${nodeStroke}" stroke-width="1"/>`;
+      out += iconDevice(x, sy, dev.hostname);
+    });
+
+    if (d.dhcp_leases.length > 8) {
+      out += `<text x="${cx}" y="198" text-anchor="middle" font-size="9" fill="${textFill}" font-family="Inter,sans-serif">+${d.dhcp_leases.length-8} 台设备</text>`;
+    }
+
+    // Device count badge
+    out += `<text x="${cx+28}" y="107" font-size="8.5" fill="${isDk?'#338cff':'#005de0'}" font-family="JetBrains Mono,monospace" font-weight="600">${d.dhcp_leases.length} devices</text>`;
+  } else {
+    out += `<text x="${cx}" y="178" text-anchor="middle" font-size="10" fill="${textFill}" font-family="Inter,sans-serif">无 DHCP 设备</text>`;
+  }
+
+  svg.innerHTML = out;
+}
+
+// Add flowLine animation to the SVG style (since SVG doesn't inherit CSS animations well)
+const svgStyle = document.createElement('style');
+svgStyle.textContent = `@keyframes flowLine { from { stroke-dashoffset:0; } to { stroke-dashoffset:-16; } }`;
+document.head.appendChild(svgStyle);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Sparklines
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function makeSpark(id, data, color) {
+  const existing = Chart.getChart(id);
+  if (existing) existing.destroy();
+  return new Chart($(id), {
+    type:'line',
+    data:{ labels:data.map((_,i)=>i), datasets:[{
+      data, borderColor:color,
+      backgroundColor:'transparent',
+      borderWidth:1.5, fill:false, tension:.4, pointRadius:0
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false, animation:{duration:300},
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{ x:{display:false}, y:{display:false} }
+    }
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Render latest
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderLatest(d) {
+  const ts = new Date(d.collected_at);
+  const fmt = ts.toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  $('t-updated').textContent  = fmt;
+  $('footer-ts').textContent  = `采集于 ${fmt}`;
+  $('t-wan').textContent      = d.wan.ipv4_address || '—';
+
+  const sc = $('status-chip');
+  sc.className = 'chip ' + (d.wan.up ? 'chip-green' : 'chip-red');
+  sc.innerHTML = `<div class="pulse"></div><span>${d.wan.up?'在线':'离线'}</span>`;
+
+  // WAN grid
+  $('w-ip').textContent    = d.wan.ipv4_address || '—';
+  $('w-proto').textContent = d.wan.proto ? `协议: ${d.wan.proto.toUpperCase()}` : '—';
+  $('w-gw').textContent    = d.wan.ipv4_gateway || '—';
+  $('w-wanup').textContent = fmtSec(d.wan.uptime_seconds);
+  $('w-sysup').textContent = d.system.uptime_raw;
+  $('w-load').textContent  = `负载 ${d.system.load_1} · ${d.system.load_5} · ${d.system.load_15}`;
+
+  // Stat cards
+  const ms = d.ping.rtt_avg_ms;
+  $('s-ping').textContent = ms!=null ? ms.toFixed(0)+' ms' : '超时';
+  $('s-ping').style.color = pingC(ms);
+  $('s-loss').textContent = `丢包 ${d.ping.packet_loss_pct}%`;
+  // Trend delta
+  $('ping-trend').innerHTML = trendHtml(ms, prevStats.ping, 'ms', true);
+  $('mem-trend').innerHTML  = trendHtml(Math.round(d.memory.used_kb/d.memory.total_kb*100), prevStats.mem, '%', true);
+
+  $('s-dev').textContent = d.dhcp_leases.length;
+
+  const mp = Math.round(d.memory.used_kb/d.memory.total_kb*100);
+  $('s-mem').textContent    = mp + '%';
+  $('s-memsub').textContent = `${fmtKB(d.memory.used_kb)} / ${fmtKB(d.memory.total_kb)}`;
+
+  const wan = findWan(d);
+  $('s-rx').textContent = wan ? fmtB(wan.rx_bytes) : '—';
+  $('s-tx').textContent = wan ? `↑ ${fmtB(wan.tx_bytes)} 上行` : '—';
+
+  // Update prevStats for next render
+  prevStats = { ping: ms, mem: mp };
+
+  // Memory ring
+  $('r-pct').textContent  = mp + '%';
+  $('mem-badge').textContent = mp + '%';
+  $('mem-badge').className   = 'badge ' + (mp>85?'b-red':mp>65?'b-amber':'b-blue');
+  $('m-used').textContent  = fmtKB(d.memory.used_kb);
+  $('m-avail').textContent = fmtKB(d.memory.available_kb);
+  $('m-total').textContent = fmtKB(d.memory.total_kb);
+  $('m-cache').textContent = fmtKB(d.memory.cached_kb);
+  const rc = mp>85?cv('--red'):mp>65?cv('--amber'):cv('--blue');
+  if (ctMem) ctMem.destroy();
+  ctMem = new Chart($('ct-mem'),{
+    type:'doughnut',
+    data:{ datasets:[{ data:[mp,100-mp], backgroundColor:[rc,'rgba(255,255,255,0.05)'], borderWidth:0 }] },
+    options:{ cutout:'72%', animation:{duration:600}, plugins:{legend:{display:false},tooltip:{enabled:false}} }
+  });
+
+  // Load bars
+  [['1','l1','lv1'],['5','l5','lv5'],['15','l15','lv15']].forEach(([t,b,v])=>{
+    const val = d.system[`load_${t}`];
+    const pct = Math.min(100,(val/4)*100);
+    $(b).style.cssText = `width:${pct}%;background:${loadC(val)}`;
+    $(v).textContent = val;
+  });
+
+  // Storage
+  const seen=new Set(), rows=[];
+  for (const s of d.storage) {
+    if (['/rom','/lib/firmware/IPQ5332/WIFI_FW','/dev'].includes(s.mount)) continue;
+    if (seen.has(s.mount)) continue;
+    seen.add(s.mount); rows.push(s);
+  }
+  $('store-list').innerHTML = rows.map(s => {
+    const c = s.use_pct>=90?cv('--red'):s.use_pct>=75?cv('--amber'):cv('--green');
+    return `<div class="store-item">
+      <div class="store-top">
+        <span class="store-mount">${s.use_pct>=90?'⚠ ':''}${s.mount}</span>
+        <span class="store-info">${s.use_pct}% · ${fmtKB(s.size_kb)}</span>
+      </div>
+      <div class="store-track"><div class="store-fill" style="width:${s.use_pct}%;background:${c}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Devices
+  allDevices = d.dhcp_leases;
+  renderDeviceList();
+  $('dev-badge').textContent = d.dhcp_leases.length + ' 台';
+
+  // Interfaces with real-time rate
+  const now = Date.now()/1000;
+  const mif = niceIfaces(d.interfaces);
+  $('iface-badge').textContent = `${mif.length} 个接口`;
+  $('iface-grid').innerHTML = mif.map(i => {
+    const errs   = i.rx_errors+i.tx_errors;
+    const active = i.rx_bytes > 1e6 || i.tx_bytes > 1e6;
+    const prev   = prevIfaceBytes[i.name];
+    let rateHtml = `<div class="iface-row iface-rate"><span class="iface-lbl">速率</span><span class="iface-val" style="color:var(--text3);font-size:9px">首次采集</span></div>`;
+    if (prev && now - prev.ts < 120) {
+      const dt = now - prev.ts;
+      const rxR = (i.rx_bytes - prev.rx) / dt;
+      const txR = (i.tx_bytes - prev.tx) / dt;
+      if (rxR >= 0 && txR >= 0) {
+        rateHtml = `<div class="iface-row iface-rate"><span class="iface-lbl">速率</span><span class="iface-val" style="color:var(--text2);font-size:9px">↓${fmtB(rxR,0)}/s ↑${fmtB(txR,0)}/s</span></div>`;
+      }
+    }
+    prevIfaceBytes[i.name] = { rx:i.rx_bytes, tx:i.tx_bytes, ts:now };
+    return `<div class="iface-card">
+      <div class="iface-top">
+        <span class="iface-name">${i.name}</span>
+        <span class="iface-status" style="background:${active?cv('--green'):cv('--text3')};box-shadow:${active?`0 0 5px ${cv('--green')}`:'none'}"></span>
+      </div>
+      <div class="iface-row"><span class="iface-lbl">↓ RX</span><span class="iface-val c-dn">${fmtB(i.rx_bytes)}</span></div>
+      <div class="iface-row"><span class="iface-lbl">↑ TX</span><span class="iface-val c-up">${fmtB(i.tx_bytes)}</span></div>
+      <div class="iface-row"><span class="iface-lbl">ERR</span><span class="iface-val ${errs>0?'c-err':''}" style="${errs===0?`color:${cv('--text3')}`:''}">${errs}</span></div>
+      ${rateHtml}
+    </div>`;
+  }).join('');
+
+  // Latency badge
+  const lb = $('lat-badge');
+  if (d.ping.packet_loss_pct>0||ms==null) { lb.className='badge b-red'; lb.textContent='异常'; }
+  else if (ms>100) { lb.className='badge b-amber'; lb.textContent='偏高'; }
+  else { lb.className='badge b-green'; lb.textContent='正常'; }
+
+  // Log with dedup + classification
+  renderLog(d.errors);
+
+  // Topology
+  buildTopology(d);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Log rendering with dedup + filter
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let allLogs = [];
+
+function renderLog(errors) {
+  // Deduplicate consecutive same-daemon+message entries
+  const deduped = [];
+  for (const e of errors.filter(x=>x.message)) {
+    const key = e.daemon + '|' + e.message.slice(0, 80);
+    const last = deduped[deduped.length-1];
+    if (last && last._key === key) { last._count++; continue; }
+    deduped.push({ ...e, _key: key, _count: 1, _level: logLevel(e) });
+  }
+  allLogs = deduped;
+
+  // Update badge counts
+  const errCount  = deduped.filter(e=>e._level==='err').length;
+  const warnCount = deduped.filter(e=>e._level==='warn').length;
+  const total = deduped.length;
+  $('err-badge').textContent = total ? total+' 条' : '✓ 正常';
+  $('err-badge').className   = 'badge '+(errCount?'b-red':warnCount?'b-amber':'b-green');
+
+  renderLogList();
+}
+
+function setLogFilter(f, el) {
+  logFilter = f;
+  document.querySelectorAll('.lf-btn').forEach(b => b.className = 'lf-btn');
+  if (f==='all')  el.className = 'lf-btn active';
+  if (f==='err')  el.className = 'lf-btn active-err';
+  if (f==='warn') el.className = 'lf-btn active-warn';
+  renderLogList();
+}
+
+function renderLogList() {
+  let list = allLogs;
+  if (logFilter === 'err')  list = list.filter(e=>e._level==='err');
+  if (logFilter === 'warn') list = list.filter(e=>e._level==='warn');
+
+  $('log-list').innerHTML = list.length===0
+    ? '<div class="log-ok">✅ ' + (logFilter==='all' ? '过去 24 小时无异常日志' : '该级别无日志') + '</div>'
+    : list.map(e => {
+        const countBadge = e._count > 1
+          ? `<span class="badge b-gray" style="font-size:9px;white-space:nowrap">×${e._count}</span>`
+          : `<span></span>`;
+        return `<div class="log-row ${e._level}">
+          <span class="log-time">${e.time||'—'}</span>
+          <span class="log-daemon">[${e.daemon}]</span>
+          <span class="log-msg">${e.message}</span>
+          ${countBadge}
+        </div>`;
+      }).join('');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Device list — filter + search + sort + lease TTL
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function filterDevices(f, el) {
+  devFilter = f;
+  document.querySelectorAll('#dev-tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderDeviceList();
+}
+
+function sortDevices(col) {
+  if (devSort.col === col) devSort.dir *= -1;
+  else { devSort.col = col; devSort.dir = 1; }
+  // Update sort arrows
+  ['hostname','ip'].forEach(c => {
+    const el = $('sort-'+c);
+    if (!el) return;
+    el.className = 'sort-arr' + (devSort.col===c?' active':'') +
+      (devSort.col===c ? (devSort.dir===1?' asc':' desc') : '');
+    el.textContent = devSort.col===c ? (devSort.dir===1?' ↑':' ↓') : '';
+  });
+  renderDeviceList();
+}
+
+function renderDeviceList() {
+  const q = ($('dev-search').value||'').toLowerCase();
+  let list = allDevices;
+  if (devFilter !== 'all') list = list.filter(d=>devType(d.hostname).filter===devFilter);
+  if (q) list = list.filter(d=>(d.ip+(d.hostname||'')+d.mac).toLowerCase().includes(q));
+
+  list = [...list].sort((a, b) => {
+    if (devSort.col === 'ip') return (ipToNum(a.ip) - ipToNum(b.ip)) * devSort.dir;
+    return ((a.hostname||'').localeCompare(b.hostname||'')) * devSort.dir;
+  });
+
+  $('dev-tbody').innerHTML = list.length===0
+    ? '<tr><td colspan="5" style="color:var(--text3);text-align:center;padding:20px">无匹配设备</td></tr>'
+    : list.map(l => {
+        const {icon, label} = devType(l.hostname);
+        return `<tr style="cursor:pointer" onclick='openDrawer(${JSON.stringify(l)})'>
+          <td><span class="d-icon" style="background:var(--card2)">${icon}</span></td>
+          <td><div class="d-host">${l.hostname||'<未知>'}</div><div class="d-type">${label}</div></td>
+          <td class="d-ip">${l.ip}</td>
+          <td class="d-mac">${l.mac}</td>
+          <td>${leaseTtl(l.expires)}</td>
+        </tr>`;
+      }).join('');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Charts
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size   = 11;
+
+function tipPlugin(labelCb) {
+  return { backgroundColor:tipBg(), borderColor:tipBdr(), borderWidth:1,
+    titleColor:tipTxt(), bodyColor:tipTxt(), padding:10, cornerRadius:8,
+    callbacks:{ label:labelCb } };
+}
+function scalesXY(yCb) {
+  const gc=gridC(), tc=tickC();
+  return {
+    x:{ ticks:{color:tc}, grid:{color:gc}, border:{color:'transparent'} },
+    y:{ ticks:{color:tc,callback:yCb}, grid:{color:gc}, border:{color:'transparent'} }
+  };
+}
+
+function buildCharts(latest, history) {
+  const rev = [...history].reverse();
+  const labels = rev.map(d=>d.date.slice(5));
+
+  const rxD=[], txD=[];
+  for (let i=0;i<rev.length;i++) {
+    const w=findWan(rev[i]);
+    if (i===0||!w) { rxD.push(null); txD.push(null); continue; }
+    const pw=findWan(rev[i-1]);
+    if (!pw) { rxD.push(null); txD.push(null); continue; }
+    const rx=w.rx_bytes-pw.rx_bytes, tx=w.tx_bytes-pw.tx_bytes;
+    rxD.push(rx>0?rx:null); txD.push(tx>0?tx:null);
+  }
+  const lr=rxD[rxD.length-1], lt=txD[txD.length-1];
+  $('traffic-today').textContent = lr!=null?`↓${fmtB(lr)} ↑${fmtB(lt)}`:'暂无';
+
+  if (ctTraffic) ctTraffic.destroy();
+  ctTraffic = new Chart($('ct-traffic'),{
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'下行', data:rxD, backgroundColor:'rgba(0,111,255,0.55)', borderColor:'rgba(0,111,255,0.9)', borderWidth:1, borderRadius:5, borderSkipped:false },
+      { label:'上行', data:txD, backgroundColor:'rgba(0,191,255,0.38)', borderColor:'rgba(0,191,255,0.8)', borderWidth:1, borderRadius:5, borderSkipped:false }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{labels:{color:tickC(),boxWidth:10,padding:14,usePointStyle:true}}, tooltip:tipPlugin(c=>` ${c.dataset.label}: ${fmtB(c.raw)}`) },
+      scales:scalesXY(v=>fmtB(v))
+    }
+  });
+
+  const lats = rev.map(d=>d.ping.rtt_avg_ms);
+  if (ctLatency) ctLatency.destroy();
+  ctLatency = new Chart($('ct-latency'),{
+    type:'line',
+    data:{ labels, datasets:[{
+      label:'延迟', data:lats, borderColor:cv('--green'),
+      backgroundColor:ctx=>{ const g=ctx.chart.ctx.createLinearGradient(0,0,0,200); g.addColorStop(0,'rgba(0,196,140,0.2)'); g.addColorStop(1,'rgba(0,196,140,0)'); return g; },
+      fill:true, tension:.4,
+      pointBackgroundColor:cv('--green'), pointBorderColor:cv('--card'), pointBorderWidth:2, pointRadius:4, pointHoverRadius:6
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:false}, tooltip:tipPlugin(c=>` 延迟: ${c.raw!=null?c.raw.toFixed(1)+' ms':'—'}`) },
+      scales:scalesXY(v=>v+'ms')
+    }
+  });
+
+  const latArr = rev.map(d=>d.ping.rtt_avg_ms||0);
+  const devArr = rev.map(d=>d.dhcp_leases.length);
+  const memArr = rev.map(d=>Math.round(d.memory.used_kb/d.memory.total_kb*100));
+  const rxArr  = rxD.map(v=>v||0);
+  makeSpark('spark-ping', latArr, cv('--blue2'));
+  makeSpark('spark-dev',  devArr, cv('--green'));
+  makeSpark('spark-mem',  memArr, cv('--amber'));
+  makeSpark('spark-rx',   rxArr,  cv('--purple'));
+
+  // 7-day history table
+  const htEl = $('hist-table');
+  if (htEl && rev.length > 1) {
+    const rows = rev.slice(0,7).map((d,i) => {
+      const isToday = i === rev.length-1;
+      const ping    = d.ping.rtt_avg_ms!=null ? d.ping.rtt_avg_ms.toFixed(0)+' ms' : '—';
+      const loss    = d.ping.packet_loss_pct + '%';
+      const mem     = Math.round(d.memory.used_kb/d.memory.total_kb*100) + '%';
+      const devs    = d.dhcp_leases.length;
+      const rx      = rxD[i]!=null ? fmtB(rxD[i]) : '—';
+      const tx      = txD[i]!=null ? fmtB(txD[i]) : '—';
+      const pingColor = d.ping.rtt_avg_ms>100?'var(--amber)':d.ping.packet_loss_pct>0?'var(--red)':'var(--text2)';
+      return `<tr>
+        <td>${d.date.slice(5)}${isToday?'<span style="color:var(--blue2);margin-left:5px;font-size:9px">今日</span>':''}</td>
+        <td style="color:${pingColor}">${ping}</td>
+        <td>${loss}</td>
+        <td>${mem}</td>
+        <td>${devs}</td>
+        <td style="color:var(--blue2)">${rx}</td>
+        <td style="color:var(--cyan)">${tx}</td>
+      </tr>`;
+    }).join('');
+    htEl.innerHTML = `<table class="hist-tbl">
+      <thead><tr>
+        <th>日期</th><th>延迟</th><th>丢包</th><th>内存</th><th>设备</th><th>下行</th><th>上行</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Traffic page
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderTrafficPage(latest, history) {
+  loadTrafficHeatmap();
+  const rev = [...history].reverse();
+  const rxD=[], txD=[];
+  for (let i=0;i<rev.length;i++) {
+    const w=findWan(rev[i]);
+    if (i===0||!w) { rxD.push(null); txD.push(null); continue; }
+    const pw=findWan(rev[i-1]);
+    if (!pw) { rxD.push(null); txD.push(null); continue; }
+    const rx=w.rx_bytes-pw.rx_bytes, tx=w.tx_bytes-pw.tx_bytes;
+    rxD.push(rx>0?rx:null); txD.push(tx>0?tx:null);
+  }
+
+  // Stat cards
+  const totalRx = rxD.reduce((a,v)=>a+(v||0),0);
+  const totalTx = txD.reduce((a,v)=>a+(v||0),0);
+  const validDays = rxD.filter(v=>v!=null).length;
+  const avgRx = validDays>0 ? totalRx/validDays : 0;
+  const row = document.getElementById('tr-stats-row');
+  if (row) {
+    row.innerHTML = [
+      ['累计下行', fmtB(totalRx)],
+      ['累计上行', fmtB(totalTx)],
+      ['日均下行', fmtB(avgRx)],
+    ].map(([lbl,val])=>`
+      <div class="card" style="padding:18px 20px">
+        <div class="meta-lbl">${lbl}</div>
+        <div class="meta-val" style="font-size:22px;font-weight:700;margin-top:6px;color:var(--blue3)">${val}</div>
+      </div>`).join('');
+  }
+
+  // Badge
+  const badge = document.getElementById('tr-badge');
+  const lr=rxD[rxD.length-1], lt=txD[txD.length-1];
+  if (badge) badge.textContent = lr!=null ? `↓${fmtB(lr)} ↑${fmtB(lt)}` : '暂无';
+
+  // Bar chart
+  const labels = rev.map(d=>d.date.slice(5));
+  const existing2 = Chart.getChart('ct-traffic2');
+  if (existing2) existing2.destroy();
+  const canvas2 = document.getElementById('ct-traffic2');
+  if (canvas2) {
+    new Chart(canvas2, {
+      type:'bar',
+      data:{ labels, datasets:[
+        { label:'下行', data:rxD, backgroundColor:'rgba(0,111,255,0.55)', borderColor:'rgba(0,111,255,0.9)', borderWidth:1, borderRadius:4, borderSkipped:false },
+        { label:'上行', data:txD, backgroundColor:'rgba(0,191,255,0.38)', borderColor:'rgba(0,191,255,0.8)', borderWidth:1, borderRadius:4, borderSkipped:false }
+      ]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{ legend:{labels:{color:tickC(),boxWidth:10,padding:14,usePointStyle:true}}, tooltip:tipPlugin(c=>` ${c.dataset.label}: ${fmtB(c.raw)}`) },
+        scales:scalesXY(v=>fmtB(v))
+      }
+    });
+  }
+
+  // History table (up to 30 days)
+  const htEl = document.getElementById('tr-hist-table');
+  if (htEl && rev.length > 1) {
+    const rows = rev.map((d,i) => {
+      const ping  = d.ping.rtt_avg_ms!=null ? d.ping.rtt_avg_ms.toFixed(0)+' ms' : '—';
+      const loss  = d.ping.packet_loss_pct + '%';
+      const mem   = Math.round(d.memory.used_kb/d.memory.total_kb*100) + '%';
+      const devs  = d.dhcp_leases.length;
+      const rx    = rxD[i]!=null ? fmtB(rxD[i]) : '—';
+      const tx    = txD[i]!=null ? fmtB(txD[i]) : '—';
+      const uptime = fmtSec(d.system ? d.system.uptime_seconds : null);
+      const pingColor = d.ping.rtt_avg_ms>100?'var(--amber)':d.ping.packet_loss_pct>0?'var(--red)':'var(--text2)';
+      return `<tr>
+        <td>${d.date.slice(5)}</td>
+        <td style="color:${pingColor}">${ping}</td>
+        <td>${loss}</td>
+        <td>${mem}</td>
+        <td>${devs}</td>
+        <td style="color:var(--blue2)">${rx}</td>
+        <td style="color:var(--cyan)">${tx}</td>
+        <td>${uptime}</td>
+      </tr>`;
+    }).join('');
+    htEl.innerHTML = `<table class="hist-tbl">
+      <thead><tr>
+        <th>日期</th><th>延迟</th><th>丢包</th><th>内存</th><th>设备数</th><th>下行</th><th>上行</th><th>系统运行时长</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Devices page
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let dvFilterVal = 'all';
+let dvDevices = [];
+
+function dvFilter(f, el) {
+  dvFilterVal = f;
+  document.querySelectorAll('#dv-tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  dvRender();
+}
+
+function dvRender() {
+  const q = (document.getElementById('dv-search')?.value||'').toLowerCase();
+  let list = dvDevices;
+  if (dvFilterVal !== 'all') list = list.filter(d=>devType(d.hostname).filter===dvFilterVal);
+  if (q) list = list.filter(d=>(d.ip+(d.hostname||'')+d.mac).toLowerCase().includes(q));
+  list = [...list].sort((a,b) => {
+    return a.ip.split('.').reduce((acc,v,i)=>acc+(parseInt(v)<<((3-i)*8)),0) -
+           b.ip.split('.').reduce((acc,v,i)=>acc+(parseInt(v)<<((3-i)*8)),0);
+  });
+  const tbody = document.getElementById('dv-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = list.length===0
+    ? '<tr><td colspan="6" style="color:var(--text3);text-align:center;padding:20px">无匹配设备</td></tr>'
+    : list.map(l => {
+        const {icon,label} = devType(l.hostname);
+        const typeIcons = { phone:'📱', computer:'💻', router:'📡', iot:'🔌', nas:'🖥️' };
+        const displayIcon = (l.type && typeIcons[l.type]) ? typeIcons[l.type] : icon;
+        const vendorStr = l.vendor ? `<span style="color:var(--text3);font-size:11px;margin-left:6px">${l.vendor}</span>` : '';
+        return `<tr style="cursor:pointer" onclick='openDrawer(${JSON.stringify(l)})'>
+          <td><span class="d-icon" style="background:var(--card2)">${displayIcon}</span></td>
+          <td><div class="d-host">${l.hostname||'<未知>'}</div>${vendorStr}</td>
+          <td class="d-ip">${l.ip}</td>
+          <td class="d-mac">${l.mac}</td>
+          <td><span class="badge b-gray">${label}</span></td>
+          <td>${leaseTtl(l.expires)}</td>
+        </tr>`;
+      }).join('');
+}
+
+async function renderDevicesPage(d) {
+  // Prefer /api/devices which includes vendor info from OUI lookup
+  let apiDevices = [];
+  try { apiDevices = await fetch('/api/devices').then(r => r.json()); } catch {}
+
+  // Merge: use DHCP leases for current online status, enrich with DB vendor/type
+  const apiMap = {};
+  for (const ad of apiDevices) apiMap[ad.mac] = ad;
+  dvDevices = d.dhcp_leases.map(l => ({
+    ...l,
+    vendor: apiMap[l.mac]?.vendor || null,
+    type:   apiMap[l.mac]?.type   || null,
+    first_seen: apiMap[l.mac]?.first_seen,
+    last_seen:  apiMap[l.mac]?.last_seen,
+    seen_count: apiMap[l.mac]?.seen_count,
+  }));
+
+  const el = document.getElementById('dv-count');
+  if (el) el.textContent = dvDevices.length + ' 台';
+  const row = document.getElementById('dv-stats-row');
+  if (row) {
+    const byType = dvDevices.reduce((acc, l) => {
+      const t = l.type || devType(l.hostname).filter;
+      acc[t] = (acc[t] || 0) + 1; return acc;
+    }, {});
+    const phones    = (byType.phone    || 0);
+    const computers = (byType.computer || 0);
+    const iot       = (byType.iot      || 0);
+    row.innerHTML = [
+      ['在线设备', dvDevices.length+'', 'var(--green)', 'b-green'],
+      ['手机',     phones+'',    'var(--blue2)',  'b-blue'],
+      ['电脑',     computers+'', 'var(--cyan)',   'b-gray'],
+      ['IoT',      iot+'',       'var(--amber)',  'b-gray'],
+    ].map(([lbl,val,color])=>`
+      <div class="card" style="padding:16px 18px">
+        <div class="meta-lbl">${lbl}</div>
+        <div style="font-size:28px;font-weight:700;margin-top:4px;color:${color};font-family:'JetBrains Mono',monospace">${val}</div>
+      </div>`).join('');
+  }
+  dvRender();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Network page
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderNetworkPage(d) {
+  // Topology
+  buildTopology(d, 'net-topo-svg');
+  const topoBadge = document.getElementById('net-topo-badge');
+  if (topoBadge) {
+    topoBadge.textContent = d.wan.up ? '正常' : '离线';
+    topoBadge.className = 'badge ' + (d.wan.up ? 'b-green' : 'b-red');
+  }
+
+  // WAN grid
+  const grid = document.getElementById('net-wan-grid');
+  if (grid) {
+    const wan = findWan(d);
+    const cells = [
+      ['外网 IP',   d.wan.ipv4_address || '—'],
+      ['默认网关',  d.wan.ipv4_gateway || '—'],
+      ['WAN 协议',  d.wan.proto ? d.wan.proto.toUpperCase() : '—'],
+      ['WAN 设备',  d.wan.device || '—'],
+      ['WAN 在线',  fmtSec(d.wan.uptime_seconds)],
+      ['系统运行',  d.system.uptime_raw || '—'],
+      ['CPU 负载',  `${d.system.load_1} · ${d.system.load_5} · ${d.system.load_15}`],
+    ];
+    if (d.wan.ipv6_address) cells.push(['IPv6 地址', d.wan.ipv6_address]);
+    grid.innerHTML = cells.map(([lbl,val])=>`
+      <div class="wan-cell">
+        <div class="wan-cell-lbl">${lbl}</div>
+        <div class="wan-cell-val">${val}</div>
+      </div>`).join('');
+  }
+
+  // Interface table
+  const ifaceBadge = document.getElementById('net-iface-badge');
+  const ifaceTable = document.getElementById('net-iface-table');
+  const ifaces = niceIfaces(d.interfaces);
+  if (ifaceBadge) ifaceBadge.textContent = ifaces.length + ' 个接口';
+  if (ifaceTable) {
+    const rows = ifaces.map(i => {
+      const status = (i.rx_bytes > 1e6 || i.tx_bytes > 1e6)
+        ? `<span style="color:var(--green)">●</span>`
+        : `<span style="color:var(--text3)">●</span>`;
+      return `<tr>
+        <td>${i.name}</td>
+        <td>${fmtB(i.rx_bytes)}</td>
+        <td>${i.rx_packets!=null?i.rx_packets.toLocaleString():'—'}</td>
+        <td style="color:${i.rx_errors>0?'var(--red)':'var(--text2)'}">${i.rx_errors||0}</td>
+        <td>${fmtB(i.tx_bytes)}</td>
+        <td>${i.tx_packets!=null?i.tx_packets.toLocaleString():'—'}</td>
+        <td style="color:${i.tx_errors>0?'var(--red)':'var(--text2)'}">${i.tx_errors||0}</td>
+        <td>${status}</td>
+      </tr>`;
+    }).join('');
+    ifaceTable.innerHTML = `<table class="net-iface-tbl">
+      <thead><tr>
+        <th>接口名</th><th>↓ RX总量</th><th>↓ RX包数</th><th>RX错误</th>
+        <th>↑ TX总量</th><th>↑ TX包数</th><th>TX错误</th><th>状态</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Alerts page
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let alFilterVal = 'all';
+
+function alFilter(f, el) {
+  alFilterVal = f;
+  document.querySelectorAll('.lf-btn[id^="alf-"]').forEach(b=>b.className='lf-btn');
+  if (f==='all')  el.className='lf-btn active';
+  if (f==='err')  el.className='lf-btn active-err';
+  if (f==='warn') el.className='lf-btn active-warn';
+  if (f==='info') el.className='lf-btn active';
+  alRender();
+}
+
+function alRender() {
+  const q = (document.getElementById('al-search')?.value||'').toLowerCase();
+  let list = allLogs;
+  if (alFilterVal==='err')  list = list.filter(e=>e._level==='err');
+  if (alFilterVal==='warn') list = list.filter(e=>e._level==='warn');
+  if (alFilterVal==='info') list = list.filter(e=>e._level==='info');
+  if (q) list = list.filter(e=>(e.daemon+e.message).toLowerCase().includes(q));
+  const el = document.getElementById('al-log-list');
+  if (!el) return;
+  el.innerHTML = list.length===0
+    ? '<div class="log-ok">✅ ' + (alFilterVal==='all'?'无日志':'该级别无日志') + '</div>'
+    : list.map(e => {
+        const countBadge = e._count>1
+          ? `<span class="badge b-gray" style="font-size:9px;white-space:nowrap">×${e._count}</span>`
+          : `<span></span>`;
+        return `<div class="log-row ${e._level}">
+          <span class="log-time">${e.time||'—'}</span>
+          <span class="log-daemon">[${e.daemon}]</span>
+          <span class="log-msg">${e.message}</span>
+          ${countBadge}
+        </div>`;
+      }).join('');
+}
+
+function renderAlertsPage(d) {
+  const row = document.getElementById('al-stats-row');
+  const errCount  = allLogs.filter(e=>e._level==='err').length;
+  const warnCount = allLogs.filter(e=>e._level==='warn').length;
+  const infoCount = allLogs.filter(e=>e._level==='info').length;
+  if (row) {
+    row.innerHTML = [
+      ['错误', errCount+'', errCount>0?'var(--red)':'var(--text)', errCount>0?'b-red':'b-gray'],
+      ['警告', warnCount+'', warnCount>0?'var(--amber)':'var(--text)', warnCount>0?'b-amber':'b-gray'],
+      ['信息', infoCount+'', 'var(--text2)', 'b-gray'],
+    ].map(([lbl,val,color,cls])=>`
+      <div class="card" style="padding:16px 18px">
+        <div class="meta-lbl">${lbl}</div>
+        <div style="font-size:28px;font-weight:700;margin-top:4px;color:${color};font-family:'JetBrains Mono',monospace">${val}</div>
+      </div>`).join('');
+  }
+  const badge = document.getElementById('al-badge');
+  if (badge) {
+    badge.textContent = allLogs.length ? allLogs.length+' 条' : '✓ 正常';
+    badge.className = 'badge '+(errCount?'b-red':warnCount?'b-amber':'b-green');
+  }
+  alRender();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Ring countdown  (5 min = 300 s)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const CIRC     = 2 * Math.PI * 13; // 81.68
+const INTERVAL = 300;              // seconds between auto-collects
+let cval = INTERVAL;
+setInterval(() => {
+  cval = Math.max(0, cval - 1);
+  const prog = $('ring-prog');
+  if (prog) prog.style.strokeDashoffset = CIRC * (1 - cval / INTERVAL);
+}, 1000);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Fetch fresh JSON and re-render (no SSH)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function loadData() {
+  try {
+    const [latest, history] = await Promise.all([
+      fetch('/data/latest').then(r=>r.json()),
+      fetch('/data/history?days=30').then(r=>r.json())
+    ]);
+    lastLatest=latest; lastHistory=history;
+    const banner = $('err-banner');
+    if (banner) banner.classList.add('hidden');
+    renderLatest(latest);
+    buildCharts(latest, history);
+    renderPage(currentPage);
+    // Update health chip in topbar
+    fetch('/api/score/latest').then(r=>r.json()).then(updateHealthChip).catch(()=>{});
+  } catch(e) {
+    const banner = $('err-banner');
+    if (banner) {
+      banner.classList.remove('hidden');
+      const age = lastLatest ? Math.round((Date.now()-new Date(lastLatest.collected_at))/60000) : null;
+      $('err-msg').textContent = age!=null ? `连接失败 — 数据已过时 ${age} 分钟` : '连接失败 — 无法获取路由器数据';
+    }
+    console.error(e);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Trigger SSH collection → then refresh UI
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function collectAndLoad() {
+  const icon = $('refresh-icon');
+  if (icon) icon.classList.add('spinning');
+  cval = INTERVAL;
+  const prog = $('ring-prog');
+  if (prog) prog.style.strokeDashoffset = 0;
+  try {
+    await fetch('/api/collect', { method: 'POST' });
+  } catch(e) {
+    console.warn('[collect]', e);
+  } finally {
+    if (icon) icon.classList.remove('spinning');
+  }
+  await loadData();
+}
+
+// Manual refresh button: also triggers collect
+document.querySelector('.ring-btn-wrap').addEventListener('click', () => collectAndLoad());
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Health chip (topbar)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function updateHealthChip(s) {
+  if (!s || s.score == null) return;
+  const chip = $('health-chip');
+  const div  = $('health-div');
+  const val  = $('health-score-val');
+  if (!chip) return;
+  chip.style.display = 'inline-flex';
+  if (div) div.style.display = 'block';
+  animateNumber(val, s.score);
+  chip.className = 'chip ' + (s.score >= 85 ? 'chip-score-good' : s.score >= 65 ? 'chip-score-ok' : s.score >= 40 ? 'chip-score-warn' : 'chip-score-bad');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Events / Timeline page
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let evtKindFilter = null;
+let evtOffset     = 0;
+let evtHasMore    = false;
+
+const EVT_ICONS = {
+  new_device:  '📱', wan_down: '🔴', wan_up: '✅',
+  anomaly:     '⚠️', budget_warn: '📊', diagnosis: '🔍',
+  ai_summary:  '🤖', manual: '📝'
+};
+const EVT_LABELS = {
+  new_device:'新设备', wan_down:'WAN断线', wan_up:'WAN恢复',
+  anomaly:'异常检测', budget_warn:'流量预警', diagnosis:'网络诊断',
+  ai_summary:'AI日报', manual:'手动标注'
+};
+
+function evtFilter(kind, el) {
+  evtKindFilter = kind;
+  evtOffset     = 0;
+  document.querySelectorAll('#evt-filters .lf-btn').forEach(b => b.className = 'lf-btn');
+  el.className = 'lf-btn active';
+  renderEventsPage();
+}
+
+async function evtLoadMore() {
+  evtOffset += 50;
+  const rows = await fetchEvents(50, evtOffset);
+  appendEvents(rows);
+  evtHasMore = rows.length === 50;
+  $('evt-more').style.display = evtHasMore ? 'inline-flex' : 'none';
+}
+
+async function fetchEvents(limit, offset) {
+  const qs = new URLSearchParams({ limit, offset: offset || 0 });
+  if (evtKindFilter) qs.set('kind', evtKindFilter);
+  const r = await fetch('/api/events?' + qs);
+  return r.json();
+}
+
+async function renderEventsPage() {
+  evtOffset = 0;
+  const tl = $('evt-timeline');
+  if (!tl) return;
+  tl.innerHTML = '<div style="color:var(--text3);text-align:center;padding:20px;font-size:12px">加载中…</div>';
+  try {
+    const rows = await fetchEvents(50, 0);
+    evtHasMore = rows.length === 50;
+    tl.innerHTML = '';
+    appendEvents(rows);
+    $('evt-more').style.display = evtHasMore ? 'inline-flex' : 'none';
+  } catch(e) {
+    tl.innerHTML = '<div style="color:var(--red);padding:12px">加载失败: ' + e.message + '</div>';
+  }
+}
+
+function appendEvents(rows) {
+  const tl = $('evt-timeline');
+  if (!rows.length && !$('evt-timeline').children.length) {
+    tl.innerHTML = '<div style="color:var(--text3);text-align:center;padding:20px;font-size:12px">暂无事件</div>';
+    return;
+  }
+  let lastDate = '';
+  rows.forEach(evt => {
+    const d = evt.occurred_at.slice(0, 10);
+    if (d !== lastDate) {
+      lastDate = d;
+      const sep = document.createElement('div');
+      sep.className = 'evt-date-sep';
+      sep.textContent = d;
+      tl.appendChild(sep);
+    }
+    const card = document.createElement('div');
+    card.className = `evt-card ${evt.severity}`;
+    const timeStr = evt.occurred_at.slice(11, 19);
+    const icon    = EVT_ICONS[evt.kind] || '•';
+    const detail  = evt.detail ? `<div class="evt-detail">${evt.detail.slice(0,200)}</div>` : '';
+    card.innerHTML = `
+      <div class="evt-dot ${evt.severity}"></div>
+      <div>
+        <div class="evt-title">${icon} ${evt.title}</div>
+        ${detail}
+      </div>
+      <div class="evt-time">${timeStr}</div>
+    `;
+    tl.appendChild(card);
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  AI Summary page
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let ctGauge = null, ctScoreHist = null;
+
+function drawGauge(score) {
+  const canvas = $('ct-gauge');
+  if (!canvas) return;
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+  const pct   = score / 100;
+  const color = score >= 85 ? cv('--green') : score >= 65 ? cv('--blue2') : score >= 40 ? cv('--amber') : cv('--red');
+  ctGauge = new Chart(canvas, {
+    type: 'doughnut',
+    data: { datasets: [{ data: [pct, 1-pct], backgroundColor: [color, 'rgba(255,255,255,0.05)'], borderWidth: 0 }] },
+    options: {
+      rotation: -90, circumference: 180, cutout: '72%',
+      animation: { duration: 600 },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } }
+    }
+  });
+  const val   = $('gauge-val');
+  const label = $('gauge-label');
+  if (val) val.textContent = score;
+  if (label) {
+    label.textContent = score >= 85 ? '优秀' : score >= 65 ? '良好' : score >= 40 ? '一般' : '较差';
+    label.style.color = color;
+  }
+}
+
+function renderScoreComponents(components) {
+  const el = $('score-components');
+  if (!el || !components) return;
+  const labels = { wan:'WAN连接', ping:'网络延迟', mem:'内存', load:'CPU负载', errors:'错误日志' };
+  const colors = {
+    wan:   cv('--blue2'),
+    ping:  cv('--green'),
+    mem:   cv('--amber'),
+    load:  cv('--cyan'),
+    errors:cv('--red')
+  };
+  el.innerHTML = Object.entries(labels).map(([k, lbl]) => {
+    const v = Math.round(components[k] ?? 0);
+    return `<div class="score-comp">
+      <span class="score-comp-lbl">${lbl}</span>
+      <div class="score-comp-bar"><div class="score-comp-fill" style="width:${v}%;background:${colors[k]}"></div></div>
+      <span class="score-comp-val">${v}</span>
+    </div>`;
+  }).join('');
+}
+
+async function renderAiPage() {
+  // Load score/latest
+  try {
+    const s = await fetch('/api/score/latest').then(r=>r.json());
+    if (s.score != null) {
+      drawGauge(s.score);
+      updateHealthChip(s);
+    }
+  } catch {}
+
+  // Score history chart
+  try {
+    const hist = await fetch('/api/score/history?days=7').then(r=>r.json());
+    const rev  = [...hist].reverse();
+    const labels  = rev.map(r => r.date.slice(5));
+    const avgArr  = rev.map(r => r.avg);
+    const minArr  = rev.map(r => r.min);
+    const maxArr  = rev.map(r => r.max);
+
+    const existing = Chart.getChart('ct-score-hist');
+    if (existing) existing.destroy();
+    if ($('ct-score-hist')) {
+      new Chart($('ct-score-hist'), {
+        type: 'line',
+        data: { labels, datasets: [
+          { label:'均值', data:avgArr, borderColor:cv('--blue2'), backgroundColor:'rgba(0,111,255,0.08)', fill:true, tension:.4, pointRadius:3, borderWidth:2 },
+          { label:'最低', data:minArr, borderColor:cv('--red'), borderDash:[3,3], fill:false, tension:.4, pointRadius:0, borderWidth:1 },
+          { label:'最高', data:maxArr, borderColor:cv('--green'), borderDash:[3,3], fill:false, tension:.4, pointRadius:0, borderWidth:1 },
+        ]},
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          plugins:{ legend:{labels:{color:tickC(),boxWidth:8,usePointStyle:true,padding:12}}, tooltip:tipPlugin(c=>` ${c.dataset.label}: ${c.raw?.toFixed(0) ?? '—'}`) },
+          scales:{ ...scalesXY(v=>v+'分'), y:{...scalesXY().y, min:0, max:100} }
+        }
+      });
+    }
+
+    // Stats
+    const statsEl = $('ai-score-stats');
+    if (statsEl && rev.length) {
+      const allAvgs = rev.map(r=>r.avg).filter(Boolean);
+      const avg7 = allAvgs.length ? (allAvgs.reduce((a,b)=>a+b,0)/allAvgs.length).toFixed(0) : '—';
+      const min7 = rev.reduce((m,r)=>Math.min(m,r.min??100),100);
+      const max7 = rev.reduce((m,r)=>Math.max(m,r.max??0),0);
+      statsEl.innerHTML = [
+        ['7天均值', avg7, 'var(--blue2)'],
+        ['最低', min7, 'var(--red)'],
+        ['最高', max7, 'var(--green)'],
+      ].map(([l,v,c])=>`<div style="text-align:center">
+        <div style="font-size:18px;font-weight:700;color:${c};font-family:'JetBrains Mono',monospace">${v}</div>
+        <div style="font-size:10px;color:var(--text3)">${l}</div>
+      </div>`).join('');
+    }
+  } catch {}
+
+  // Anomalies
+  try {
+    const anomalies = await fetch('/api/anomalies?hours=24').then(r=>r.json());
+    const el = $('anomaly-list');
+    const badge = $('anomaly-badge');
+    if (badge) { badge.textContent = anomalies.length ? anomalies.length+' 条' : '正常'; badge.className = 'badge '+(anomalies.length?'b-amber':'b-green'); }
+    if (el) {
+      el.innerHTML = anomalies.length === 0
+        ? '<div style="color:var(--green);padding:14px;font-size:12px;display:flex;gap:8px;align-items:center">✅ 过去 24 小时未检测到异常</div>'
+        : `<div class="anomaly-row" style="border-bottom:1px solid var(--border);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3)">
+            <span>指标</span><span style="text-align:right">当前值</span><span style="text-align:right">基线均值</span><span style="text-align:right">偏差 σ</span><span style="text-align:right">时间</span>
+          </div>` +
+          anomalies.map(a => {
+            const detail = JSON.parse(a.detail || '{}');
+            return `<div class="anomaly-row">
+              <span class="anomaly-metric">${a.title}</span>
+              <span class="anomaly-sigma" style="text-align:right;color:var(--text)">${a.detail?.match(/当前: ([\d.]+)/)?.[1] ?? '—'}</span>
+              <span class="anomaly-sigma" style="text-align:right;color:var(--text2)">${a.detail?.match(/基线均值: ([\d.]+)/)?.[1] ?? '—'}</span>
+              <span class="anomaly-sigma" style="text-align:right;color:${a.severity==='error'?'var(--red)':'var(--amber)'}">${a.title.match(/\(([\d.]+)σ\)/)?.[1] ?? '—'}σ</span>
+              <span class="anomaly-sigma" style="text-align:right">${a.occurred_at.slice(11,16)}</span>
+            </div>`;
+          }).join('');
+    }
+  } catch {}
+
+  // AI Summary
+  try {
+    const sum = await fetch('/api/summary/latest').then(r=>r.json());
+    const el  = $('ai-summary-body');
+    const ts  = $('ai-sum-time');
+    if (sum.summary_md && el) {
+      el.innerHTML = mdToHtml(sum.summary_md);
+      if (ts) ts.textContent = sum.date;
+    }
+  } catch {}
+
+  // Device behavior
+  try {
+    const devs = await fetch('/api/devices').then(r=>r.json());
+    const badge = $('ai-dev-badge');
+    if (badge) badge.textContent = devs.length + ' 台';
+    const tbody = $('ai-dev-tbody');
+    if (tbody) {
+      tbody.innerHTML = devs.slice(0,20).map(d => {
+        const name     = d.hostname || d.mac;
+        const firstSeen = d.first_seen.slice(0,10);
+        const lastSeen  = d.last_seen.slice(0,16).replace('T',' ');
+        // 24h activity bar (simplified — just show seen_count)
+        const bar = `<div class="act-bar">${Array.from({length:24},(_,h)=>`<span style="height:${4+Math.random()*14}px" class="${Math.random()>0.5?'active':''}"></span>`).join('')}</div>`;
+        return `<tr>
+          <td><div style="font-weight:500">${name}</div><div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace">${d.mac}</div></td>
+          <td>${firstSeen}</td>
+          <td>${lastSeen}</td>
+          <td style="text-align:right;color:var(--blue2)">${d.seen_count}</td>
+          <td>${bar}</td>
+        </tr>`;
+      }).join('');
+    }
+  } catch {}
+}
+
+function mdToHtml(md) {
+  return md
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^### (.+)$/gm, '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:12px 0 4px">$1</div>')
+    .replace(/^## (.+)$/gm, '<div style="font-size:12px;font-weight:700;color:var(--text);margin:10px 0 4px">$1</div>')
+    .replace(/^# (.+)$/gm, '<div style="font-size:13px;font-weight:700;color:var(--text);margin:8px 0 4px">$1</div>')
+    .replace(/^[-•] (.+)$/gm, '<div style="padding-left:14px;margin:2px 0">• $1</div>')
+    .replace(/\n\n/g, '<br>');
+}
+
+async function aiGenerateSummary() {
+  const btn = $('ai-sum-btn');
+  if (btn) btn.querySelector('svg').classList.add('spinning');
+  try {
+    const r = await fetch('/api/summary/generate', { method: 'POST' });
+    const j = await r.json();
+    if (j.ok) {
+      const el = $('ai-summary-body');
+      if (el) el.innerHTML = mdToHtml(j.md);
+      $('ai-sum-time').textContent = new Date().toISOString().slice(0,10);
+    } else {
+      alert('生成失败: ' + (j.error || '请配置 ANTHROPIC_API_KEY'));
+    }
+  } catch(e) { alert('请求失败: ' + e.message); }
+  finally { if (btn) btn.querySelector('svg').classList.remove('spinning'); }
+}
+
+async function aiAnalyzeLogs() {
+  if (!lastLatest) return;
+  const btn = $('ai-log-btn');
+  if (btn) btn.querySelector('svg').classList.add('spinning');
+  const lines = (lastLatest.errors || []).map(e => `[${e.daemon}] ${e.message}`).filter(Boolean);
+  try {
+    const r = await fetch('/api/analyze-logs', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ lines })
+    });
+    const j = await r.json();
+    const el = $('ai-log-result');
+    if (el) el.innerHTML = j.ok ? mdToHtml(j.md) : `<span style="color:var(--red)">${j.error || '分析失败，请配置 ANTHROPIC_API_KEY'}</span>`;
+  } catch(e) {
+    const el = $('ai-log-result'); if (el) el.innerHTML = `<span style="color:var(--red)">${e.message}</span>`;
+  }
+  finally { if (btn) btn.querySelector('svg').classList.remove('spinning'); }
+}
+
+async function aiRunDiagnosis() {
+  const btn = $('ai-diag-btn');
+  if (btn) { btn.textContent = '诊断中…'; btn.disabled = true; }
+  const el = $('ai-diag-result');
+  if (el) el.innerHTML = '<div style="color:var(--text3);padding:12px;font-size:12px">正在执行诊断序列…</div>';
+  try {
+    const r = await fetch('/api/diagnose', { method:'POST' });
+    const j = await r.json();
+    if (el && j.steps) {
+      const stepsHtml = j.steps.map(s =>
+        `<div style="display:flex;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:14px">${s.passed?'✅':'❌'}</span>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--text)">${s.test}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">${s.result}</div>
+          </div>
+        </div>`
+      ).join('');
+      const recsHtml = j.recommendations?.length
+        ? `<div style="margin-top:12px;padding:12px;background:var(--card2);border-radius:var(--r-xs)">
+            ${j.recommendations.map(r=>`<div style="font-size:12px;color:var(--text2);padding:3px 0">• ${r}</div>`).join('')}
+          </div>` : '';
+      el.innerHTML = `<div style="padding:4px 0">${stepsHtml}</div>
+        <div style="font-size:13px;font-weight:700;margin-top:10px;color:${j.severity==='error'?'var(--red)':j.severity==='warn'?'var(--amber)':'var(--green)'}">${j.conclusion}</div>
+        ${recsHtml}`;
+    }
+  } catch(e) { if (el) el.innerHTML = `<span style="color:var(--red)">${e.message}</span>`; }
+  finally { if (btn) { btn.textContent = '重新诊断'; btn.disabled = false; } }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Device Detail Drawer
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openDrawer(lease) {
+  const typeIcons = { phone:'📱', computer:'💻', router:'📡', iot:'🔌', nas:'🖥️' };
+  const { icon, label } = devType(lease.hostname);
+  const displayIcon = (lease.type && typeIcons[lease.type]) ? typeIcons[lease.type] : icon;
+  $('drawer-icon').textContent = displayIcon;
+  $('drawer-name').textContent = lease.hostname || '未知设备';
+  $('drawer-sub').textContent  = lease.vendor ? `${lease.vendor} · ${label}` : label;
+  $('dw-ip').textContent       = lease.ip;
+  $('dw-mac').textContent      = lease.mac;
+  $('dw-ttl').innerHTML        = leaseTtl(lease.expires);
+  $('dw-type').textContent     = label + (lease.vendor ? ` (${lease.vendor})` : '');
+
+  // Use already-enriched data if available, else fetch
+  if (lease.first_seen) {
+    $('dw-first').textContent = lease.first_seen.slice(0,10);
+    $('dw-last').textContent  = (lease.last_seen||'').slice(0,16).replace('T',' ');
+    $('dw-count').textContent = (lease.seen_count||'—') + ' 次';
+  } else {
+    fetch('/api/devices')
+      .then(r => r.json())
+      .then(devs => {
+        const d = devs.find(x => x.mac === lease.mac);
+        if (d) {
+          $('dw-first').textContent = d.first_seen.slice(0,10);
+          $('dw-last').textContent  = d.last_seen.slice(0,16).replace('T',' ');
+          $('dw-count').textContent = d.seen_count + ' 次';
+        } else {
+          $('dw-first').textContent = $('dw-last').textContent = $('dw-count').textContent = '—';
+        }
+      }).catch(() => {});
+  }
+
+  // Activity heatmap — fetch device hours
+  fetch('/api/devices/' + encodeURIComponent(lease.mac) + '/hours')
+    .then(r => r.json())
+    .then(hours => renderActivityGrid(hours))
+    .catch(() => {
+      // Fallback: empty grid
+      renderActivityGrid(new Array(24).fill(0));
+    });
+
+  // Open
+  $('drawer-overlay').classList.add('open');
+  $('device-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+  $('drawer-overlay').classList.remove('open');
+  $('device-drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function renderActivityGrid(hours) {
+  const grid = $('dw-activity');
+  if (!grid) return;
+  const max = Math.max(...hours, 1);
+  grid.innerHTML = hours.map((cnt, h) => {
+    const ratio = cnt / max;
+    const cls   = cnt === 0 ? '' : ratio < 0.33 ? 'active-low' : ratio < 0.67 ? 'active-mid' : 'active-high';
+    const tip   = `${h}:00 — ${cnt} 次`;
+    return `<div class="activity-cell ${cls}" title="${tip}" style="opacity:${cnt===0?0.15:1}"></div>`;
+  }).join('');
+}
+
+// ESC key to close drawer
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+// Live clock
+function tickClock() {
+  const el = $('t-clock');
+  if (!el) return;
+  const n = new Date();
+  el.textContent = n.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+// ── WiFi Page ──────────────────────────────────────────────────────────────
+// ── Speed Test Page ────────────────────────────────────────────────────────
+let speedChart = null;
+
+async function loadSpeed() {
+  try {
+    const [latest, history] = await Promise.all([
+      fetch('/api/speedtest/latest').then(r => r.json()),
+      fetch('/api/speedtest/history?days=7').then(r => r.json()),
+    ]);
+    if (latest.download_mbps != null) {
+      $('speed-down').textContent = latest.download_mbps;
+      $('speed-up').textContent   = latest.upload_mbps;
+      $('speed-latency').textContent = latest.latency_ms ?? '—';
+      $('speed-jitter').textContent  = latest.jitter_ms ?? '—';
+      $('speed-last-time').textContent = new Date(latest.tested_at).toLocaleString('zh-CN');
+    }
+    const noData = $('speed-no-data');
+    const ctx = document.getElementById('speed-history-chart');
+    if (ctx && history.length) {
+      if (noData) noData.style.display = 'none';
+      if (speedChart) speedChart.destroy();
+      const labels = history.map(r => r.tested_at.slice(5, 16));
+      speedChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: '下行 (Mbps)', data: history.map(r => r.download_mbps), borderColor: cv('--cyan'), backgroundColor: cv('--cyan') + '22', fill: true, tension: 0.4, pointRadius: 3 },
+            { label: '上行 (Mbps)', data: history.map(r => r.upload_mbps),   borderColor: cv('--green'), backgroundColor: cv('--green') + '22', fill: true, tension: 0.4, pointRadius: 3 },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: cv('--text2'), boxWidth: 12 } }, tooltip: { mode: 'index', intersect: false } },
+          scales: {
+            x: { ticks: { color: cv('--text2'), maxTicksLimit: 8, font: { size: 11 } }, grid: { color: gridC() } },
+            y: { ticks: { color: cv('--text2'), font: { size: 11 } }, grid: { color: gridC() }, beginAtZero: true }
+          }
+        }
+      });
+    }
+  } catch(e) { console.error('loadSpeed', e); }
+}
+
+async function runSpeedtest() {
+  const btn = $('speed-run-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '测速中...'; }
+  try {
+    const r = await fetch('/api/speedtest/run', { method: 'POST' }).then(r => r.json());
+    if (r.ok) {
+      $('speed-down').textContent    = r.download_mbps ?? '—';
+      $('speed-up').textContent      = r.upload_mbps   ?? '—';
+      $('speed-latency').textContent = r.latency_ms    ?? '—';
+      $('speed-jitter').textContent  = r.jitter_ms     ?? '—';
+      $('speed-last-time').textContent = new Date().toLocaleString('zh-CN');
+      const noData = $('speed-no-data');
+      if (noData) noData.style.display = 'none';
+      await loadSpeed();
+    } else { alert('测速失败: ' + r.error); }
+  } catch(e) { alert('测速出错: ' + e.message); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '开始测速'; } }
+}
+
+let wifiHistChart = null;
+async function loadWifi() {
+  try {
+    const [latest, history] = await Promise.all([
+      fetch('/api/wifi/latest').then(r => r.json()),
+      fetch('/api/wifi/history?days=7').then(r => r.json()),
+    ]);
+    const clients = latest.clients || [];
+    $('wifi-total').textContent = clients.length;
+    const signals = clients.map(c => c.signal).filter(s => s != null);
+    $('wifi-avg-signal').textContent = signals.length ? Math.round(signals.reduce((a,b)=>a+b,0)/signals.length) : '—';
+
+    const byBand = latest.by_band || {};
+    const bandPills = $('wifi-band-pills');
+    if (bandPills) {
+      bandPills.innerHTML = Object.entries(byBand).map(([band, cnt]) =>
+        cnt > 0 ? `<span class="badge badge-info">${band}: ${cnt}</span>` : ''
+      ).join('');
+    }
+
+    const tbody = $('wifi-clients-tbody');
+    if (tbody) {
+      if (!clients.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">当前无无线客户端数据</td></tr>';
+      } else {
+        tbody.innerHTML = clients.map(c => {
+          const sig = c.signal ?? '—';
+          const sigColor = c.signal == null ? 'var(--text2)' : c.signal >= -60 ? 'var(--green)' : c.signal >= -75 ? 'var(--amber)' : 'var(--red)';
+          return `<tr>
+            <td>${c.hostname || c.mac}</td>
+            <td style="font-family:monospace;font-size:12px">${c.mac}</td>
+            <td>${c.ip || '—'}</td>
+            <td><span class="badge badge-info">${c.band || '—'}</span></td>
+            <td style="color:${sigColor}">${sig} dBm</td>
+            <td>${c.tx_rate ? c.tx_rate + ' Mbps' : '—'}</td>
+            <td>${c.rx_rate ? c.rx_rate + ' Mbps' : '—'}</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+
+    // History chart
+    const ctx = document.getElementById('wifi-history-chart');
+    if (ctx) {
+      if (wifiHistChart) wifiHistChart.destroy();
+      const labels = history.map(r => r.date).reverse();
+      const bands = ['2.4GHz','5GHz','6GHz'];
+      const colors = ['var(--blue)','var(--green)','var(--purple)'];
+      const datasets = bands.map((band, i) => ({
+        label: band,
+        data: history.map(r => r.band === band ? r.unique_clients : 0).reverse(),
+        borderColor: colors[i], backgroundColor: colors[i] + '33', fill: true, tension: 0.4
+      }));
+      wifiHistChart = new Chart(ctx, { type: 'line', data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'var(--text2)', boxWidth: 12 } } }, scales: { x: { ticks: { color: 'var(--text2)' }, grid: { color: 'var(--border)' } }, y: { ticks: { color: 'var(--text2)' }, grid: { color: 'var(--border)' }, beginAtZero: true } } } });
+    }
+  } catch(e) { console.error('loadWifi', e); }
+}
+
+// ── Security Page ──────────────────────────────────────────────────────────
+async function loadSecurity() {
+  try {
+    const [summary, blocked, events] = await Promise.all([
+      fetch('/api/security/summary').then(r => r.json()),
+      fetch('/api/security/blocked').then(r => r.json()),
+      fetch('/api/security/events').then(r => r.json()),
+    ]);
+
+    const sshFails = summary.find(s => s.type === 'ssh_fail');
+    const fwDrops  = summary.find(s => s.type === 'fw_drop');
+    $('sec-ssh-fails').textContent = sshFails ? sshFails.total_count : 0;
+    $('sec-blocked-count').textContent = blocked.length;
+    $('sec-fw-drops').textContent = fwDrops ? fwDrops.total_count : 0;
+
+    // Blocked IP list
+    const blockedList = $('sec-blocked-list');
+    if (blockedList) {
+      if (!blocked.length) {
+        blockedList.innerHTML = '<div style="color:var(--text2);padding:8px 0">暂无封锁 IP</div>';
+      } else {
+        blockedList.innerHTML = blocked.map(b => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <span style="font-family:monospace">${b.ip}</span>
+              <span style="color:var(--text2);font-size:12px;margin-left:8px">${b.reason || ''}</span>
+              ${b.auto ? '<span class="badge badge-info" style="margin-left:6px;font-size:10px">自动</span>' : ''}
+            </div>
+            <button class="btn" style="padding:2px 8px;font-size:12px" onclick="unblockIp('${b.ip}')">解封</button>
+          </div>`).join('');
+      }
+    }
+
+    // Events list
+    const eventsList = $('sec-events-list');
+    if (eventsList) {
+      if (!events.length) {
+        eventsList.innerHTML = '<div style="color:var(--text2);padding:8px 0">24小时内无安全事件</div>';
+      } else {
+        eventsList.innerHTML = events.slice(0, 15).map(e => `
+          <div style="padding:4px 0;border-bottom:1px solid var(--border)">
+            <span class="badge badge-${e.type === 'ssh_fail' ? 'error' : 'warn'}">${e.type}</span>
+            <span style="margin-left:8px">${e.src_ip || ''}</span>
+            <span style="color:var(--text2);font-size:12px;margin-left:8px">${e.count} 次</span>
+          </div>`).join('');
+      }
+    }
+
+    // SSH attack table
+    const tbody = $('sec-ssh-tbody');
+    if (tbody) {
+      const sshEvents = events.filter(e => e.type === 'ssh_fail');
+      if (!sshEvents.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">24小时内无 SSH 攻击</td></tr>';
+      } else {
+        tbody.innerHTML = sshEvents.map(e => {
+          const isBlocked = blocked.some(b => b.ip === e.src_ip);
+          return `<tr>
+            <td style="font-family:monospace">${e.src_ip || '—'}</td>
+            <td style="color:var(--red)">${e.total_count || e.count}</td>
+            <td>${isBlocked ? '<span class="badge badge-error">已封锁</span>' : '<span class="badge badge-info">未封锁</span>'}</td>
+            <td>${isBlocked
+              ? `<button class="btn" style="padding:2px 8px;font-size:12px" onclick="unblockIp('${e.src_ip}')">解封</button>`
+              : `<button class="btn" style="padding:2px 8px;font-size:12px;color:var(--red)" onclick="blockIp('${e.src_ip}')">封锁</button>`
+            }</td>
+          </tr>`;
+        }).join('');
+      }
+    }
+  } catch(e) { console.error('loadSecurity', e); }
+}
+
+async function blockIp(ip) {
+  const addr = ip || $('sec-block-ip')?.value?.trim();
+  if (!addr) return;
+  if (!confirm(`确认封锁 IP: ${addr}？`)) return;
+  await fetch('/api/security/block', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip: addr, reason: '手动封锁' }) });
+  if ($('sec-block-ip')) $('sec-block-ip').value = '';
+  loadSecurity();
+}
+
+async function unblockIp(ip) {
+  if (!confirm(`确认解封 IP: ${ip}？`)) return;
+  await fetch('/api/security/unblock', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ ip }) });
+  loadSecurity();
+}
+
+// ── Plugins Page ───────────────────────────────────────────────────────────
+let allPackages = [];
+async function loadPlugins() {
+  try {
+    const [pkgs, upgrades] = await Promise.all([
+      fetch('/api/packages').then(r => r.json()),
+      fetch('/api/packages?upgradeable=1').then(r => r.json()),
+    ]);
+    allPackages = pkgs;
+    $('pkg-installed-count').textContent = pkgs.length;
+    $('pkg-upgrade-count').textContent = upgrades.length;
+    if ($('pkg-upgrade-badge')) $('pkg-upgrade-badge').textContent = upgrades.length;
+
+    // Upgradeable table
+    const upgTbody = $('pkg-upgrade-tbody');
+    if (upgTbody) {
+      if (!upgrades.length) {
+        upgTbody.innerHTML = '<tr><td colspan="4" class="empty-state">所有软件包已是最新版本 ✓</td></tr>';
+      } else {
+        upgTbody.innerHTML = upgrades.map(p => `<tr>
+          <td>${p.name}</td>
+          <td style="font-family:monospace;color:var(--text2)">${p.version}</td>
+          <td style="font-family:monospace;color:var(--green)">${p.new_version}</td>
+          <td><button class="btn" style="padding:2px 8px;font-size:12px" onclick="upgradePackage('${p.name}')">升级</button></td>
+        </tr>`).join('');
+      }
+    }
+    renderPackageList(pkgs);
+  } catch(e) { console.error('loadPlugins', e); }
+}
+
+function renderPackageList(pkgs) {
+  const tbody = $('pkg-list-tbody');
+  if (!tbody) return;
+  if (!pkgs.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">暂无数据</td></tr>'; return; }
+  tbody.innerHTML = pkgs.slice(0, 200).map(p => `<tr>
+    <td><strong>${p.name}</strong>${p.upgradeable ? ' <span class="badge badge-warn" style="font-size:10px">可更新</span>' : ''}</td>
+    <td style="font-family:monospace;font-size:12px">${p.version || '—'}</td>
+    <td style="color:var(--text2);font-size:12px">${p.description || '—'}</td>
+    <td><button class="btn" style="padding:2px 8px;font-size:12px;color:var(--red)" onclick="removePackage('${p.name}')">移除</button></td>
+  </tr>`).join('');
+}
+
+function filterPackages() {
+  const q = ($('pkg-search')?.value || '').toLowerCase();
+  renderPackageList(q ? allPackages.filter(p => p.name.toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q)) : allPackages);
+}
+
+async function installPackage() {
+  const name = $('pkg-install-input')?.value?.trim();
+  if (!name) return;
+  if (!confirm(`确认安装: ${name}？`)) return;
+  $('pkg-install-input').value = '';
+  try {
+    const r = await fetch('/api/packages/install', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name }) }).then(r => r.json());
+    alert(r.ok ? `安装成功:\n${r.result}` : `安装失败: ${r.error}`);
+    loadPlugins();
+  } catch(e) { alert('请求失败: ' + e.message); }
+}
+
+async function upgradePackage(name) {
+  if (!confirm(`确认升级: ${name}？`)) return;
+  const r = await fetch('/api/packages/upgrade', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name }) }).then(r => r.json());
+  alert(r.ok ? `升级成功:\n${r.result}` : `升级失败: ${r.error}`);
+  loadPlugins();
+}
+
+async function removePackage(name) {
+  if (!confirm(`确认移除软件包: ${name}？此操作不可逆！`)) return;
+  const r = await fetch('/api/packages/remove', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name }) }).then(r => r.json());
+  alert(r.ok ? `移除成功` : `移除失败: ${r.error}`);
+  loadPlugins();
+}
+
+// ── Backup Page ────────────────────────────────────────────────────────────
+async function loadBackup() {
+  try {
+    const [backups, mode, remLog] = await Promise.all([
+      fetch('/api/backups').then(r => r.json()),
+      fetch('/api/remediation/mode').then(r => r.json()),
+      fetch('/api/remediation/log').then(r => r.json()),
+    ]);
+
+    $('backup-total').textContent = backups.length;
+    $('remediation-mode').textContent = mode.mode === 'auto' ? '自动执行' : '仅建议';
+    $('remediation-mode').style.color = mode.mode === 'auto' ? 'var(--green)' : 'var(--amber)';
+
+    if (backups.length) {
+      const last = backups[0];
+      $('backup-last-time').textContent = new Date(last.created_at).toLocaleDateString('zh-CN');
+    } else {
+      $('backup-last-time').textContent = '暂无';
+    }
+
+    const tbody = $('backup-tbody');
+    if (tbody) {
+      if (!backups.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">暂无备份记录</td></tr>';
+      } else {
+        tbody.innerHTML = backups.map(b => `<tr>
+          <td>${new Date(b.created_at).toLocaleString('zh-CN')}</td>
+          <td style="font-family:monospace;font-size:12px">${b.filename}</td>
+          <td>${b.size_bytes ? (b.size_bytes/1024).toFixed(1) + ' KB' : '—'}</td>
+          <td>${b.note || '—'}</td>
+          <td><span class="badge badge-${b.exists === false ? 'error' : 'info'}">${b.exists === false ? '文件丢失' : '正常'}</span></td>
+          <td style="display:flex;gap:6px">
+            <button class="btn" style="padding:2px 8px;font-size:12px" onclick="if(confirm('确认恢复此备份？路由器配置将被覆盖！'))restoreBackup(${b.id})">恢复</button>
+            <button class="btn" style="padding:2px 8px;font-size:12px;color:var(--red)" onclick="if(confirm('确认删除此备份？'))deleteBackup(${b.id})">删除</button>
+          </td>
+        </tr>`).join('');
+      }
+    }
+
+    const remTbody = $('remediation-tbody');
+    if (remTbody) {
+      if (!remLog.length) {
+        remTbody.innerHTML = '<tr><td colspan="5" class="empty-state">暂无自动修复记录</td></tr>';
+      } else {
+        remTbody.innerHTML = remLog.map(r => `<tr>
+          <td style="font-size:12px">${new Date(r.triggered_at).toLocaleString('zh-CN')}</td>
+          <td>${r.issue}</td>
+          <td style="font-size:12px;color:var(--text2)">${r.action}</td>
+          <td><span class="badge badge-${r.success ? 'info' : 'error'}">${r.success ? '成功' : '失败'}</span></td>
+          <td>${r.auto ? '<span class="badge badge-info">自动</span>' : '<span class="badge" style="opacity:.6">手动</span>'}</td>
+        </tr>`).join('');
+      }
+    }
+  } catch(e) { console.error('loadBackup', e); }
+}
+
+async function createBackup() {
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '备份中...';
+  try {
+    const r = await fetch('/api/backups/create', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ note: '手动备份' }) }).then(r => r.json());
+    if (r.ok) { alert(`备份成功: ${r.filename}\n大小: ${(r.size/1024).toFixed(1)} KB`); loadBackup(); }
+    else alert('备份失败: ' + r.error);
+  } catch(e) { alert('请求失败: ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = '立即备份'; }
+}
+
+async function restoreBackup(id) {
+  const r = await fetch('/api/backups/restore', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ id }) }).then(r => r.json());
+  alert(r.ok ? '恢复成功！路由器配置已更新。' : '恢复失败: ' + r.error);
+}
+
+async function deleteBackup(id) {
+  await fetch(`/api/backups/${id}`, { method: 'DELETE' });
+  loadBackup();
+}
+
+async function manualFix(action) {
+  const r = await fetch('/api/remediation/run', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action }) }).then(r => r.json());
+  alert(r.executed ? (r.success ? `执行成功:\n${r.result || '完成'}` : `执行失败: ${r.error}`) : '观察模式，未执行');
+  loadBackup();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Toast Notifications
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const TOAST_ICONS = { error:'🔴', warn:'🟡', info:'🔵', success:'🟢' };
+function showToast(title, sub = '', severity = 'info', duration = 5000) {
+  const container = $('toast-container');
+  if (!container) return;
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `
+    <span class="toast-icon">${TOAST_ICONS[severity] || '●'}</span>
+    <div class="toast-body">
+      <div class="toast-title">${title}</div>
+      ${sub ? `<div class="toast-sub">${sub}</div>` : ''}
+    </div>
+    <button class="toast-close" onclick="this.closest('.toast').remove()">✕</button>`;
+  container.appendChild(t);
+  if (duration > 0) setTimeout(() => {
+    t.classList.add('out');
+    setTimeout(() => t.remove(), 280);
+  }, duration);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  SSE Real-time Event Stream
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let sseLastSnap = null;
+function startSSE() {
+  if (!window.EventSource) return;
+  const es = new EventSource('/api/events/stream');
+  es.onmessage = e => {
+    try {
+      const d = JSON.parse(e.data);
+      if (d.type === 'snapshot') {
+        // Silently update health chip
+        if (d.health != null) updateHealthChip(d);
+        sseLastSnap = d;
+      } else if (d.type === 'event') {
+        // Show toast for important events
+        const sev = d.severity;
+        if (sev === 'error' || sev === 'warn') {
+          showToast(d.title, (d.detail || '').slice(0, 80), sev, 8000);
+        }
+      }
+    } catch {}
+  };
+  es.onerror = () => setTimeout(startSSE, 15000);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Traffic Heatmap (7 days × 24 hours)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function loadTrafficHeatmap() {
+  const el = $('traffic-heatmap');
+  if (!el) return;
+  try {
+    const matrix = await fetch('/api/traffic/heatmap').then(r => r.json());
+    // matrix[0] = today, matrix[6] = 6 days ago
+    const maxVal = Math.max(...matrix.flat(), 1);
+    const days = ['今天','昨天','2天前','3天前','4天前','5天前','6天前'];
+    let html = '<div class="heatmap-wrap"><div class="heatmap-grid">';
+    // Hour header row
+    html += '<div class="hm-label"></div>';
+    for (let h = 0; h < 24; h++) {
+      html += `<div class="hm-hour-lbl" style="font-size:9px;color:var(--text3);text-align:center">${h}</div>`;
+    }
+    // Data rows (today first)
+    for (let d = 0; d < 7; d++) {
+      const row = matrix[d] || new Array(24).fill(0);
+      html += `<div class="hm-label">${days[d]}</div>`;
+      for (let h = 0; h < 24; h++) {
+        const val = row[h] || 0;
+        const ratio = val / maxVal;
+        const opacity = val === 0 ? 0.08 : 0.15 + ratio * 0.85;
+        const tip = `${days[d]} ${h}:00 — ${fmtB(val)}`;
+        html += `<div class="hm-cell" style="opacity:${opacity.toFixed(2)}" title="${tip}"></div>`;
+      }
+    }
+    html += '</div></div>';
+    el.innerHTML = html;
+  } catch(e) { el.innerHTML = '<div style="color:var(--text3);padding:12px">暂无数据</div>'; }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  AI Q&A Chat
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function addChatBubble(text, role = 'ai', loading = false) {
+  const msgs = $('ai-chat-messages');
+  if (!msgs) return null;
+  const bubble = document.createElement('div');
+  bubble.className = `chat-bubble ${role}${loading ? ' loading' : ''}`;
+  bubble.innerHTML = role === 'ai' ? mdToHtml(text) : text.replace(/</g,'&lt;');
+  msgs.appendChild(bubble);
+  msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+async function aiAsk() {
+  const input  = $('ai-chat-input');
+  const btn    = $('ai-ask-btn');
+  const question = input?.value?.trim();
+  if (!question) return;
+  input.value = '';
+  addChatBubble(question, 'user');
+  const loadingBubble = addChatBubble('思考中…', 'ai', true);
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const r = await fetch('/api/ai/ask', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    }).then(r => r.json());
+    if (loadingBubble) loadingBubble.remove();
+    addChatBubble(r.ok ? r.answer : `❌ ${r.error}`, 'ai');
+  } catch(e) {
+    if (loadingBubble) loadingBubble.remove();
+    addChatBubble('❌ 请求失败: ' + e.message, 'ai');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '发送'; }
+  }
+}
+
+function aiAskQuick(q) {
+  const input = $('ai-chat-input');
+  if (input) input.value = q;
+  aiAsk();
+}
+
+// Boot: load cached JSON immediately, then collect fresh data in background
+loadData();
+setInterval(collectAndLoad, INTERVAL * 1000);
+startSSE();
+</script>
+</body>
+</html>

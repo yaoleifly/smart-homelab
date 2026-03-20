@@ -1,0 +1,11 @@
+node_modules/
+data/
+logs/
+router-backups/
+*.log
+
+# Sensitive — never commit credentials
+data/user-config.json
+
+# macOS
+.DS_Store
