@@ -25,8 +25,21 @@ mkdir -p "$DATA_DIR" "$LOG_DIR"
 
 echo "[$(date)] Starting collection..." >> "$LOG_DIR/collect.log"
 
-# Collect raw data in one SSH session
-RAW=$(sshpass -p "$ROUTER_PASS" ssh \
+# Locate sshpass (Homebrew on macOS or system path)
+SSHPASS_BIN=""
+for p in /opt/homebrew/bin/sshpass /usr/local/bin/sshpass /usr/bin/sshpass sshpass; do
+  if command -v "$p" &>/dev/null 2>&1 || [ -x "$p" ]; then
+    SSHPASS_BIN="$p"; break
+  fi
+done
+if [ -z "$SSHPASS_BIN" ]; then
+  echo "[$(date)] ERROR: sshpass not found. Install with: brew install sshpass" >> "$LOG_DIR/collect.log"
+  exit 1
+fi
+
+# Collect raw data in one SSH session (pass via env var to avoid shell quoting issues)
+export SSHPASS="$ROUTER_PASS"
+RAW=$(SSHPASS="$ROUTER_PASS" "$SSHPASS_BIN" -e ssh \
   -o StrictHostKeyChecking=no \
   -o ConnectTimeout=15 \
   -o BatchMode=no \

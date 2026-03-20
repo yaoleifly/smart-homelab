@@ -584,19 +584,37 @@ http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/setup/test-connection' && req.method === 'POST') {
-    const { execSync } = require('child_process');
     try {
       const { host, user = 'root', pass, port = 22 } = await readBody(req);
       if (!host || !pass) return send(res, 400, MIME['.json'], '{"ok":false,"error":"host and pass required"}');
-      // Quick SSH test: echo ok
-      const result = execSync(
-        `sshpass -p ${JSON.stringify(pass)} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=8 -o BatchMode=no -p ${port} ${user}@${host} "echo ok"`,
-        { timeout: 12_000, encoding: 'utf8' }
-      ).trim();
-      if (result === 'ok') return send(res, 200, MIME['.json'], '{"ok":true}');
-      return send(res, 200, MIME['.json'], JSON.stringify({ ok: false, error: `Unexpected output: ${result}` }));
+      // Use SSHPASS env var to avoid any shell quoting / injection issues
+      const sshpassBin = ['/opt/homebrew/bin/sshpass', '/usr/bin/sshpass', 'sshpass']
+        .find(p => { try { require('fs').accessSync(p); return true; } catch { return false; } }) || 'sshpass';
+      await new Promise((resolve, reject) => {
+        const child = spawn(sshpassBin, [
+          '-e', 'ssh',
+          '-o', 'StrictHostKeyChecking=no',
+          '-o', 'ConnectTimeout=8',
+          '-o', 'BatchMode=no',
+          '-p', String(port),
+          `${user}@${host}`,
+          'echo ok'
+        ], {
+          env: { ...process.env, SSHPASS: pass },
+          timeout: 12_000,
+        });
+        let out = '', err = '';
+        child.stdout.on('data', d => out += d);
+        child.stderr.on('data', d => err += d);
+        child.on('close', code => {
+          if (code === 0 && out.trim() === 'ok') resolve();
+          else reject(new Error(err.trim() || `exit ${code}`));
+        });
+        child.on('error', reject);
+      });
+      return send(res, 200, MIME['.json'], '{"ok":true}');
     } catch (e) {
-      return send(res, 200, MIME['.json'], JSON.stringify({ ok: false, error: e.message.slice(0, 200) }));
+      return send(res, 200, MIME['.json'], JSON.stringify({ ok: false, error: e.message.slice(0, 300) }));
     }
   }
 
