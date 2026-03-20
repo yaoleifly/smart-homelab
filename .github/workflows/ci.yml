@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Syntax Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check JS syntax (Node.js files)
+        run: |
+          for f in *.js; do
+            echo "Checking $f..."
+            node --check "$f"
+          done
+
+      - name: Check shell script syntax
+        run: bash -n collect.sh && echo "collect.sh OK"
+
+      - name: Verify no hardcoded credentials
+        run: |
+          # Fail if any common credential patterns found in source files
+          if grep -rn --include="*.js" --include="*.sh" \
+            -e "sk-ant-api" \
+            -e "github_pat_" \
+            -e "ghp_" \
+            .; then
+            echo "ERROR: Possible hardcoded credentials found!"
+            exit 1
+          fi
+          echo "No hardcoded credentials found."
+
+      - name: Check required files exist
+        run: |
+          for f in server.js collect.sh parser.js ingest.js store.js ai.js alerts.js \
+                   remediate.js config.js user-config.js dashboard.html install.sh \
+                   README.md CHANGELOG.md CONTRIBUTING.md .gitignore; do
+            [ -f "$f" ] && echo "✓ $f" || { echo "✗ Missing: $f"; exit 1; }
+          done
